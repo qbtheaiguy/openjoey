@@ -113,6 +113,29 @@ If you see **"Unknown model: anthropic/kimi-k2.5"**, the gateway must run the im
 
 ---
 
+## Keep the gateway running 24/7 (no sleep, no downtime)
+
+So users don’t see the bot go offline:
+
+1. **Hetzner VPS** — The server does not sleep; it’s always on. No action needed.
+
+2. **Docker restart policy** — The compose file sets `restart: unless-stopped` for the gateway. If the container exits, Docker restarts it. After a server reboot, Docker starts the container again as long as the Docker daemon is enabled.
+
+3. **Docker on boot** — On the Hetzner server, ensure Docker starts on boot (default on most installs):
+
+   ```bash
+   sudo systemctl enable docker
+   sudo systemctl status docker   # should be active
+   ```
+
+4. **Healthcheck** — The compose file includes a healthcheck that hits the gateway every 60s. If the gateway stops responding, Docker marks the container as unhealthy (`docker ps` will show it). Docker does not auto-restart on unhealthy by default; if you want that, add a cron job on the server that runs `docker inspect --format '{{.State.Health.Status}}' openclaw-openclaw-gateway-1` and, when not `healthy`, runs `cd /root/openclaw && docker compose restart openclaw-gateway`.
+
+5. **Don’t run the gateway twice** — Only run the gateway in Docker on the server. If you start a native `openclaw gateway` process on the same host, it will bind port 18789 and the Docker container will fail to start. Use one or the other.
+
+6. **Optional: external uptime monitor** — Use a service like UptimeRobot or Better Uptime to ping your bot or gateway (e.g. via a webhook or public endpoint) and alert you if it’s down.
+
+---
+
 ## Keeping your OpenJoey fixes from reverting
 
 When you sync with openclaw (upstream), always resolve conflicts in favor of your OpenJoey code. Use:

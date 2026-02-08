@@ -23,6 +23,22 @@ services:
       - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
     init: true
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-sS",
+          "--connect-timeout",
+          "5",
+          "-o",
+          "/dev/null",
+          "http://127.0.0.1:18789/",
+        ]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     command:
       [
         "node",
