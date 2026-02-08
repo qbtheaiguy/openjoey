@@ -1,5 +1,6 @@
 services:
   openclaw-gateway:
+    build: .
     image: ${OPENCLAW_IMAGE:-openclaw:local}
     environment:
       HOME: /home/node
@@ -34,6 +35,7 @@ services:
       ]
 
   openclaw-cli:
+    build: .
     image: ${OPENCLAW_IMAGE:-openclaw:local}
     environment:
       HOME: /home/node

@@ -28,7 +28,13 @@
 
    (You are pushing to **qbtheaiguy/openjoey** — not the upstream openclaw repo.)
 
-3. When it asks for username/password, use your GitHub username and a **Personal Access Token** (not your GitHub password). Create one at: GitHub → Settings → Developer settings → Personal access tokens.
+3. **Before pushing**, check what you’re about to push (keeps OpenJoey fixes from being overwritten):
+
+   ```bash
+   ./scripts/openjoey-check-before-push.sh
+   ```
+
+4. When it asks for username/password, use your GitHub username and a **Personal Access Token** (not your GitHub password). Create one at: GitHub → Settings → Developer settings → Personal access tokens.
 
 ---
 
@@ -104,3 +110,14 @@ If you see **"Unknown model: anthropic/kimi-k2.5"**, the gateway must run the im
    ```bash
    docker compose up -d openclaw-gateway
    ```
+
+---
+
+## Keeping your OpenJoey fixes from reverting
+
+When you sync with openclaw (upstream), always resolve conflicts in favor of your OpenJoey code. Use:
+
+- **Safe upstream sync:** `./scripts/openjoey-sync-upstream.sh` — merges upstream into a branch so you can fix conflicts before merging into main.
+- **Check before push:** `./scripts/openjoey-check-before-push.sh` — see commits and files you’re about to push.
+
+Full steps: [docs/install/openjoey-sync-upstream.md](docs/install/openjoey-sync-upstream.md).
