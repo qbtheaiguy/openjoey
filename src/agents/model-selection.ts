@@ -202,6 +202,12 @@ export function resolveConfiguredModelRef(params: {
         return aliasMatch.ref;
       }
 
+      // Known Moonshot model ids: resolve to moonshot/... so they are never treated as anthropic.
+      const moonshotModelIds = ["kimi-k2.5", "kimi-k2-thinking", "kimi-k2"];
+      if (moonshotModelIds.some((id) => normalizeAliasKey(trimmed) === normalizeAliasKey(id))) {
+        return { provider: "moonshot", model: trimmed };
+      }
+
       // Default to anthropic if no provider is specified, but warn as this is deprecated.
       console.warn(
         `[openclaw] Model "${trimmed}" specified without provider. Falling back to "anthropic/${trimmed}". Please use "anthropic/${trimmed}" in your config.`,
@@ -215,7 +221,15 @@ export function resolveConfiguredModelRef(params: {
       aliasIndex,
     });
     if (resolved) {
-      return resolved.ref;
+      // If config or session has wrong provider for Kimi (e.g. anthropic/kimi-k2.5), force moonshot.
+      const moonshotModelIds = ["kimi-k2.5", "kimi-k2-thinking", "kimi-k2"];
+      const ref = resolved.ref;
+      if (
+        moonshotModelIds.some((id) => normalizeAliasKey(ref.model) === normalizeAliasKey(id))
+      ) {
+        return { provider: "moonshot", model: ref.model };
+      }
+      return ref;
     }
   }
   return { provider: params.defaultProvider, model: params.defaultModel };
