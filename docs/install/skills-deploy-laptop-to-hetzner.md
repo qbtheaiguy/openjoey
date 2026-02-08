@@ -22,7 +22,7 @@ For **meme-lord** (or any new skill), you can use either **bundled** (repo) or *
 
 - **meme-lord on laptop:** `/Users/theaiguy/CascadeProjects/openJoey/skills/meme-lord/`  
   (That’s the **CascadeProjects/openJoey** project, not this **openjoey-main** repo.)
-- **Hetzner repo clone:** `/root/openclaw` (clone of your fork, e.g. `qbtheaiguy/openjoey`).
+- **Hetzner repo clone:** `/root/openclaw` (clone of your repo, e.g. `qbtheaiguy/openjoey`).
 - **Workspace on server:** `/root/.openclaw/workspace` (for agent files; can also hold `workspace/skills/`).
 
 ---
@@ -126,7 +126,7 @@ If **meme-lord** lives in a different repo (e.g. only in CascadeProjects/openJoe
 
 From **PUSH-AND-RUN-MIGRATION.md** and the PRD:
 
-1. **Laptop:** Change code (or add a skill), commit, push to your fork (e.g. `qbtheaiguy/openjoey`).
+1. **Laptop:** Change code (or add a skill), commit, push to your repo (e.g. `qbtheaiguy/openjoey`).
 2. **Hetzner:** SSH in, then:
    ```bash
    cd /root/openclaw
@@ -134,7 +134,7 @@ From **PUSH-AND-RUN-MIGRATION.md** and the PRD:
    docker compose build openclaw-gateway
    docker compose up -d openclaw-gateway
    ```
-3. **Optional:** Use the fork image so the gateway runs the image built from your repo (Kimi model fix, etc.); see “Using the fork image” in PUSH-AND-RUN-MIGRATION.md.
+3. **Optional:** Use the local image so the gateway runs the image built from your repo (Kimi model fix, etc.); see “Using the local image” in PUSH-AND-RUN-MIGRATION.md.
 
 **Workspace** (`/root/.openclaw/workspace` or `~/.openclaw/workspace` on the laptop) is used for the **agent** (AGENTS.md, identity, tools). It is **not** the same as the repo’s `skills/` directory. Skills in the repo are bundled into the image; skills in `workspace/skills/` on the server are loaded from the workspace and do not require a rebuild.
 

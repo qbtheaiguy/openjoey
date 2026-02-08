@@ -3,10 +3,10 @@
 ## Part 1 is done on your computer
 
 - Git repo was initialized and all files were committed (including the migration docs and server script).
-- **You still need to push to your fork** (the bot can’t log into GitHub for you).
-- Your fork: **https://github.com/qbtheaiguy/openjoey**
+- **You still need to push to your repo** (the bot can’t log into GitHub for you).
+- Your repo: **https://github.com/qbtheaiguy/openjoey** (standalone, private)
 
-### Push to your fork
+### Push to your repo
 
 1. Open Terminal and run:
 
@@ -14,7 +14,7 @@
    cd /Users/theaiguy/Downloads/openjoey-main
    ```
 
-2. Origin is already set to your fork. Push:
+2. Origin is already set to your repo. Push:
 
    ```bash
    git push -u origin main
@@ -26,7 +26,7 @@
    git push -u origin main --force
    ```
 
-   (You are pushing to **qbtheaiguy/openjoey** — not the upstream openclaw repo.)
+   (You are pushing to **qbtheaiguy/openjoey** — your OpenJoey repo, not openclaw.)
 
 3. **Before pushing**, check what you’re about to push (keeps OpenJoey fixes from being overwritten):
 
@@ -48,7 +48,7 @@ The bot can’t SSH into your server. Do this yourself:
    ssh root@YOUR_SERVER_IP
    ```
 
-2. **After you’ve pushed**, on the server clone **your fork** and run the migration script:
+2. **After you’ve pushed**, on the server clone **your repo** and run the migration script:
 
    ```bash
    cd /root
@@ -79,7 +79,7 @@ Done.
 
 ---
 
-## Using the fork image (Kimi model fix)
+## Using the local image (Kimi model fix)
 
 If you see **"Unknown model: anthropic/kimi-k2.5"**, the gateway must run the image built from this repo (so the model is resolved as Moonshot). On the server:
 
