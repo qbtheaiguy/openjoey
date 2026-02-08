@@ -52,7 +52,13 @@ export const createTelegramMessageProcessor = (deps: TelegramMessageProcessorDep
     primaryCtx: TelegramContext,
     allMedia: TelegramMediaRef[],
     storeAllowFrom: string[],
-    options?: { messageIdOverride?: string; forceWasMentioned?: boolean },
+    options?: {
+      messageIdOverride?: string;
+      forceWasMentioned?: boolean;
+      sessionKeyOverride?: string;
+      responseSuffix?: string;
+      openjoeyTelegramId?: number;
+    },
   ) => {
     const context = await buildTelegramMessageContext({
       primaryCtx,

@@ -1,0 +1,3 @@
+#!/usr/bin/env node
+// Signal-Fusion CLI entry point
+import './cli.js';

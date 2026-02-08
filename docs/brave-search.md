@@ -10,6 +10,8 @@ title: "Brave Search"
 
 OpenClaw uses Brave Search as the default provider for `web_search`.
 
+For step-by-step setup help, the agent can use the **brave-api-setup** skill (bundled); ask the agent to "set up Brave API" or "enable web search."
+
 ## Get an API key
 
 1. Create a Brave Search API account at [https://brave.com/search/api/](https://brave.com/search/api/)

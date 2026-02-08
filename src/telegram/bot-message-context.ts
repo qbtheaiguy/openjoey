@@ -64,6 +64,12 @@ export type TelegramMediaRef = {
 type TelegramMessageContextOptions = {
   forceWasMentioned?: boolean;
   messageIdOverride?: string;
+  /** OpenJoey: override session key for DM (user:telegramId). */
+  sessionKeyOverride?: string;
+  /** OpenJoey: suffix to append after agent reply (e.g. FOMO / trial message). */
+  responseSuffix?: string;
+  /** OpenJoey: Telegram user id for DM; used for post-response hook (e.g. usage). */
+  openjoeyTelegramId?: number;
 };
 
 type TelegramLogger = {
@@ -180,7 +186,7 @@ export const buildTelegramMessageContext = async ({
     dmThreadId != null
       ? resolveThreadSessionKeys({ baseSessionKey, threadId: String(dmThreadId) })
       : null;
-  const sessionKey = threadKeys?.sessionKey ?? baseSessionKey;
+  const sessionKey = options?.sessionKeyOverride ?? threadKeys?.sessionKey ?? baseSessionKey;
   const mentionRegexes = buildMentionRegexes(cfg, route.agentId);
   const effectiveDmAllow = normalizeAllowFromWithStore({ allowFrom, storeAllowFrom });
   const groupAllowOverride = firstDefined(topicConfig?.allowFrom, groupConfig?.allowFrom);
@@ -692,6 +698,8 @@ export const buildTelegramMessageContext = async ({
     reactionApi,
     removeAckAfterReply,
     accountId: account.accountId,
+    responseSuffix: options?.responseSuffix,
+    openjoeyTelegramId: options?.openjoeyTelegramId,
   };
 };
 

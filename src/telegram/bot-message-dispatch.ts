@@ -21,6 +21,7 @@ import { createReplyPrefixOptions } from "../channels/reply-prefix.js";
 import { createTypingCallbacks } from "../channels/typing.js";
 import { resolveMarkdownTableMode } from "../config/markdown-tables.js";
 import { danger, logVerbose } from "../globals.js";
+import { onAgentResponse } from "../openjoey/gateway-hook.js";
 import { deliverReplies } from "./bot/delivery.js";
 import { resolveTelegramDraftStreamingChunking } from "./draft-chunking.js";
 import { createTelegramDraftStream } from "./draft-stream.js";
@@ -86,6 +87,8 @@ export const dispatchTelegramMessage = async ({
     ackReactionPromise,
     reactionApi,
     removeAckAfterReply,
+    responseSuffix,
+    openjoeyTelegramId,
   } = context;
 
   const isPrivateChat = msg.chat.type === "private";
@@ -351,6 +354,31 @@ export const dispatchTelegramMessage = async ({
       });
     },
   });
+
+  if (hasFinalResponse && responseSuffix?.trim()) {
+    await deliverReplies({
+      replies: [{ text: responseSuffix.trim() }],
+      chatId: String(chatId),
+      token: opts.token,
+      runtime,
+      bot,
+      replyToMode,
+      textLimit,
+      thread: threadSpec,
+      tableMode,
+      chunkMode,
+      linkPreview: telegramCfg.linkPreview,
+    }).catch((err) => {
+      runtime.error?.(danger(`telegram OpenJoey responseSuffix failed: ${String(err)}`));
+    });
+  }
+
+  if (hasFinalResponse && openjoeyTelegramId != null) {
+    onAgentResponse(openjoeyTelegramId, "").catch((err) => {
+      runtime.error?.(danger(`telegram OpenJoey onAgentResponse failed: ${String(err)}`));
+    });
+  }
+
   if (isGroup && historyKey) {
     clearHistoryEntriesIfEnabled({ historyMap: groupHistories, historyKey, limit: historyLimit });
   }

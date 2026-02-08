@@ -26,6 +26,7 @@ import { formatUncaughtError } from "../infra/errors.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
 import { getChildLogger } from "../logging.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
+import { onTelegramMessage } from "../openjoey/gateway-hook.js";
 import { resolveAgentRoute } from "../routing/resolve-route.js";
 import { resolveTelegramAccount } from "./accounts.js";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
@@ -339,7 +340,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
     return { groupConfig, topicConfig };
   };
 
-  const processMessage = createTelegramMessageProcessor({
+  const baseProcessMessage = createTelegramMessageProcessor({
     bot,
     cfg,
     account,
@@ -361,6 +362,64 @@ export function createTelegramBot(opts: TelegramBotOptions) {
     opts,
     resolveBotTopicsEnabled,
   });
+
+  const processMessage = async (
+    primaryCtx: TelegramContext,
+    allMedia: Parameters<typeof baseProcessMessage>[1],
+    storeAllowFrom: string[],
+    options?: Parameters<typeof baseProcessMessage>[3],
+  ) => {
+    const msg = primaryCtx.message;
+    const isPrivate = msg?.chat?.type === "private";
+    if (!isPrivate) {
+      await baseProcessMessage(primaryCtx, allMedia, storeAllowFrom, options);
+      return;
+    }
+    const telegramId = msg.from?.id;
+    const chatId = msg.chat.id;
+    const text = (msg.text ?? msg.caption ?? "").trim();
+    if (telegramId == null) {
+      await baseProcessMessage(primaryCtx, allMedia, storeAllowFrom, options);
+      return;
+    }
+    try {
+      const parts = text.split(/\s+/);
+      const startPayload =
+        parts[0]?.toLowerCase() === "/start"
+          ? parts.slice(1).join(" ").trim() || undefined
+          : undefined;
+      const hookResult = await onTelegramMessage({
+        telegramId,
+        telegramUsername: msg.from?.username,
+        telegramChatId: chatId,
+        displayName:
+          [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(" ").trim() ||
+          msg.from?.username,
+        text,
+        startPayload,
+      });
+      if (hookResult.directReply) {
+        await withTelegramApiErrorLogging({
+          operation: "sendMessage (OpenJoey directReply)",
+          fn: () =>
+            bot.api.sendMessage(chatId, hookResult.directReply!, { parse_mode: "Markdown" }),
+        }).catch(() => bot.api.sendMessage(chatId, hookResult.directReply!));
+        return;
+      }
+      if (!hookResult.shouldProcess) {
+        return;
+      }
+      await baseProcessMessage(primaryCtx, allMedia, storeAllowFrom, {
+        ...options,
+        sessionKeyOverride: hookResult.sessionKey,
+        responseSuffix: hookResult.responseSuffix,
+        openjoeyTelegramId: telegramId,
+      });
+    } catch (err) {
+      runtime.error?.(danger(`OpenJoey telegram hook failed: ${String(err)}`));
+      await baseProcessMessage(primaryCtx, allMedia, storeAllowFrom, options);
+    }
+  };
 
   registerTelegramNativeCommands({
     bot,

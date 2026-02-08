@@ -76,3 +76,5 @@ memory/
 .agent/*.json
 !.agent/workflows/
 local/
+.vercel
+.env*.local

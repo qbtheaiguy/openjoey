@@ -94,6 +94,9 @@ export type RegisterTelegramHandlerParams = {
     options?: {
       messageIdOverride?: string;
       forceWasMentioned?: boolean;
+      sessionKeyOverride?: string;
+      responseSuffix?: string;
+      openjoeyTelegramId?: number;
     },
   ) => Promise<void>;
   logger: ReturnType<typeof getChildLogger>;
