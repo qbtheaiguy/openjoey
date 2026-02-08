@@ -3,7 +3,8 @@
 ## Part 1 is done on your computer
 
 - Git repo was initialized and all files were committed (including the migration docs and server script).
-- **You still need to push to YOUR fork** (the bot can’t log into GitHub for you).
+- **You still need to push to your fork** (the bot can’t log into GitHub for you).
+- Your fork: **https://github.com/qbtheaiguy/openjoey**
 
 ### Push to your fork
 
@@ -13,13 +14,7 @@
    cd /Users/theaiguy/Downloads/openjoey-main
    ```
 
-2. Point `origin` at **your** GitHub fork (replace `YOUR_GITHUB_USERNAME` with your real username):
-
-   ```bash
-   git remote set-url origin https://github.com/YOUR_GITHUB_USERNAME/openjoey.git
-   ```
-
-3. Push (use `--force` only if your fork already had a different history):
+2. Origin is already set to your fork. Push:
 
    ```bash
    git push -u origin main
@@ -30,6 +25,8 @@
    ```bash
    git push -u origin main --force
    ```
+
+   (You are pushing to **qbtheaiguy/openjoey** — not the upstream openclaw repo.)
 
 4. When it asks for username/password, use your GitHub username and a **Personal Access Token** (not your GitHub password). Create one at: GitHub → Settings → Developer settings → Personal access tokens.
 
@@ -45,20 +42,13 @@ The bot can’t SSH into your server. Do this yourself:
    ssh root@YOUR_SERVER_IP
    ```
 
-2. **Download and run the migration script** (replace `YOUR_GITHUB_USERNAME` with your GitHub username):
-
-   ```bash
-   curl -sO https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/openjoey/main/scripts/hetzner-migration-run-on-server.sh
-   bash hetzner-migration-run-on-server.sh YOUR_GITHUB_USERNAME
-   ```
-
-   Or, after you’ve pushed, clone the repo and run the script from inside it:
+2. **After you’ve pushed**, on the server clone **your fork** and run the migration script:
 
    ```bash
    cd /root
-   git clone https://github.com/YOUR_GITHUB_USERNAME/openjoey.git openclaw
+   git clone https://github.com/qbtheaiguy/openjoey.git openclaw
    cd openclaw
-   bash scripts/hetzner-migration-run-on-server.sh YOUR_GITHUB_USERNAME
+   bash scripts/hetzner-migration-run-on-server.sh qbtheaiguy
    ```
 
 3. **Edit secrets** (the script creates `.env` and `openclaw.json`; you must put in your real tokens):
