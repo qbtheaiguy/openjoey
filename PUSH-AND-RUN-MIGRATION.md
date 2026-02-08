@@ -28,7 +28,7 @@
 
    (You are pushing to **qbtheaiguy/openjoey** — not the upstream openclaw repo.)
 
-4. When it asks for username/password, use your GitHub username and a **Personal Access Token** (not your GitHub password). Create one at: GitHub → Settings → Developer settings → Personal access tokens.
+3. When it asks for username/password, use your GitHub username and a **Personal Access Token** (not your GitHub password). Create one at: GitHub → Settings → Developer settings → Personal access tokens.
 
 ---
 
@@ -52,7 +52,6 @@ The bot can’t SSH into your server. Do this yourself:
    ```
 
 3. **Edit secrets** (the script creates `.env` and `openclaw.json`; you must put in your real tokens):
-
    - Gateway token and Moonshot key: `nano /root/openclaw/.env`
    - Telegram bot token: `nano /root/.openclaw/openclaw.json`
 
@@ -71,3 +70,37 @@ The bot can’t SSH into your server. Do this yourself:
    Then in the browser: **http://127.0.0.1:18789/** (paste your gateway token when asked).
 
 Done.
+
+---
+
+## Using the fork image (Kimi model fix)
+
+If you see **"Unknown model: anthropic/kimi-k2.5"**, the gateway must run the image built from this repo (so the model is resolved as Moonshot). On the server:
+
+1. **Pull latest** (includes memory/onboard fix so the build succeeds):
+
+   ```bash
+   cd /root/openclaw && git pull origin main
+   ```
+
+2. **Build the image** (Dockerfile uses `OPENCLAW_A2UI_SKIP_MISSING=1`):
+
+   ```bash
+   docker compose build openclaw-gateway
+   ```
+
+   Or: `docker build -t openclaw:local -f Dockerfile .`
+
+3. **Use the local image**: in `/root/openclaw/.env` set:
+
+   ```bash
+   OPENCLAW_IMAGE=openclaw:local
+   ```
+
+   (Or remove `OPENCLAW_IMAGE` so compose defaults to `openclaw:local`.)
+
+4. **Restart the gateway**:
+
+   ```bash
+   docker compose up -d openclaw-gateway
+   ```
