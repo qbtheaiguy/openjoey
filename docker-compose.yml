@@ -2,6 +2,8 @@ services:
   openclaw-gateway:
     build: .
     image: ${OPENCLAW_IMAGE:-openclaw:local}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       HOME: /home/node
       TERM: xterm-256color
@@ -15,6 +17,7 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      OPENJOEY_REDIS_URL: ${OPENJOEY_REDIS_URL:-}
     volumes:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
