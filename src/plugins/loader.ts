@@ -166,6 +166,8 @@ function pushDiagnostics(diagnostics: PluginDiagnostic[], append: PluginDiagnost
   diagnostics.push(...append);
 }
 
+import { registerOpenJoeyGuard } from "../openjoey/skill-guard-hook.js";
+
 export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegistry {
   const cfg = options.config ?? {};
   const logger = options.logger ?? defaultLogger();
@@ -193,6 +195,19 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
     runtime,
     coreGatewayHandlers: options.coreGatewayHandlers as Record<string, GatewayRequestHandler>,
   });
+
+  // Register OpenJoey Skill Guard as a built-in plugin
+  const openJoeyRecord = createPluginRecord({
+    id: "openjoey-guard",
+    name: "OpenJoey Skill Guard",
+    source: "internal",
+    origin: "bundled",
+    enabled: true,
+    configSchema: false,
+  });
+  const openJoeyApi = createApi(openJoeyRecord, { config: cfg });
+  registerOpenJoeyGuard(openJoeyApi);
+  registry.plugins.push(openJoeyRecord);
 
   const discovery = discoverOpenClawPlugins({
     workspaceDir: options.workspaceDir,

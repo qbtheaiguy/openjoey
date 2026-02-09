@@ -5,6 +5,7 @@
  * /start, /subscribe, /status, /referral, /cancel, /help
  */
 
+import { attributeReferral } from "./referral-system.js";
 import { deriveSessionKey, getAllowedSkills, getTierLimits } from "./session-isolation.js";
 import { getOpenJoeyDB } from "./supabase-client.js";
 
@@ -25,9 +26,9 @@ export function getWelcomeMessage(
     `Hey ${displayName}! I'm your personal AI trading assistant.\n\n` +
     `✅ Your 3-day trial is active (${daysLeft} days left)\n\n` +
     `During your trial you get:\n` +
-    `• Unlimited trading analysis (signal-fusion, trading-god)\n` +
+    `• Unlimited trading analysis (Signal Guru, Research Guru, Sentiment Tracker)\n` +
     `• Up to 5 active price alerts\n` +
-    `• Full access to all trading skills\n\n` +
+    `• Full access to 25+ specialized trading skills\n\n` +
     `Try me out! Send any token symbol or contract address:\n` +
     `• "Analyze SOL"\n` +
     `• "What's happening with BONK?"\n` +
@@ -55,6 +56,13 @@ export async function handleStart(
 ): Promise<string> {
   const db = getOpenJoeyDB();
   const result = await db.registerUser(telegramId, username, displayName, referralCode);
+
+  // If new user and was referred, attribute the referral
+  if (result.status === "created" && referralCode) {
+    await attributeReferral(result.user_id, referralCode).catch((err) => {
+      console.error("[start] attributeReferral failed:", err);
+    });
+  }
 
   if (result.status === "existing") {
     const user = await db.getUser(telegramId);
@@ -218,12 +226,12 @@ export function getHelpMessage(tier: string): string {
   msg += `• "Analyze [token]" — Full signal fusion report\n`;
   msg += `• "Deep dive [token]" — Trading god research\n`;
 
-  if (skills.includes("price-alerts")) {
+  if (skills.includes("alert-guru")) {
     msg += `• "Alert me when [token] hits $X" — Set price alert\n`;
     msg += `• /alerts — View your active alerts\n`;
   }
 
-  if (skills.includes("whale-tracker")) {
+  if (skills.includes("whale-guru")) {
     msg += `• "Track wallet [address]" — Watch a whale wallet\n`;
     msg += `• "Check whales" — See whale activity\n`;
   }

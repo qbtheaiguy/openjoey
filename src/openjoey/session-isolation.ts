@@ -35,48 +35,62 @@ export function deriveSessionKey(telegramId: number): string {
  * - Premium: Everything + options + advanced features
  */
 export function getAllowedSkills(tier: string): string[] {
-  // Core analysis skills - available to all tiers
+  // Core analysis skills - available to most tiers except Free
   const CORE_SKILLS = [
+    "edy", // Personalized skill for Edy (GBP/USD, Gold, DJ30, GER40, NSDQ100) 💕
+  ];
+
+  // Professional trading skills - available to trial and subscribers
+  const TRADING_SKILLS = [
     "signal-guru", // Master multi-asset analyzer
     "research-guru", // Deep research system
     "crypto-guru", // Crypto-specific deep dives
     "meme-guru", // Meme coin degen intelligence
-    "edy", // Personalized skill for Edy (GBP/USD, Gold, DJ30, GER40, NSDQ100) 💕
-  ];
-
-  // Multi-asset skills - available to trial and up
-  const MULTIASSET_SKILLS = [
     "stock-guru", // Stocks & ETFs
     "forex-guru", // Currency pairs
     "commodity-guru", // Gold, oil, etc.
+    "sentiment-tracker", // NEW: Social sentiment
+    "dex-scanner", // NEW: DEX discovery
+    "insider-tracker", // NEW: SEC/Whale tracking
+    "penny-stock-scanner", // NEW: Micro-cap breaks
+    "market-scanner", // NEW: Global filtering
+    "news-alerts", // NEW: Breaking news
+    "economic-calendar", // NEW: Macro events
   ];
 
   // Subscriber-only skills - trader, annual, premium
   const SUBSCRIBER_SKILLS = [
     "whale-guru", // Whale tracking & smart money
     "alert-guru", // Price alerts (background monitoring)
+    "unusual-options", // NEW: Block trades/sweeps
+    "central-bank-watch", // NEW: Fed/ECB policy
+    "correlation-tracker", // NEW: Cross-asset links
+    "futures-analyzer", // NEW: OI/Funding/Liqs
+    "cot-analyzer", // NEW: Institutional positions
   ];
 
   // Premium-only skills
   const PREMIUM_SKILLS = [
     "options-guru", // Options chain analysis & Greeks
+    "options-strategy", // NEW: Multi-leg builder
+    "trading-god-pro", // NEW: Institutional research
     "api-access", // Direct API access
   ];
 
   switch (tier) {
     case "trial":
-      // Trial gets core + multi-asset + limited alerts
-      return [...CORE_SKILLS, ...MULTIASSET_SKILLS, "alert-guru"];
+      // Trial gets absolute access to trading skills + alerts
+      return [...CORE_SKILLS, ...TRADING_SKILLS, "alert-guru"];
     case "free":
       // Free tier gets minimal skills
       return CORE_SKILLS;
     case "trader":
     case "annual":
-      // Full subscriber access except premium
-      return [...CORE_SKILLS, ...MULTIASSET_SKILLS, ...SUBSCRIBER_SKILLS];
+      // Full subscriber access except premium specific
+      return [...CORE_SKILLS, ...TRADING_SKILLS, ...SUBSCRIBER_SKILLS];
     case "premium":
       // Everything unlocked
-      return [...CORE_SKILLS, ...MULTIASSET_SKILLS, ...SUBSCRIBER_SKILLS, ...PREMIUM_SKILLS];
+      return [...CORE_SKILLS, ...TRADING_SKILLS, ...SUBSCRIBER_SKILLS, ...PREMIUM_SKILLS];
     default:
       return CORE_SKILLS;
   }

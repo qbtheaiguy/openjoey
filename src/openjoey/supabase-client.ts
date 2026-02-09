@@ -102,13 +102,13 @@ export class OpenJoeyDB {
 
   // --------------- REST helpers ---------------
 
-  private async get<T>(table: string, query: string = ""): Promise<T[]> {
+  public async get<T>(table: string, query: string = ""): Promise<T[]> {
     const res = await fetch(`${this.url}/rest/v1/${table}?${query}`, { headers: this.headers });
     if (!res.ok) throw new Error(`Supabase GET ${table}: ${res.status} ${await res.text()}`);
     return res.json();
   }
 
-  private async insert<T>(table: string, data: Record<string, unknown>): Promise<T> {
+  public async insert<T>(table: string, data: Record<string, unknown>): Promise<T> {
     const res = await fetch(`${this.url}/rest/v1/${table}`, {
       method: "POST",
       headers: this.headers,
@@ -119,7 +119,7 @@ export class OpenJoeyDB {
     return rows[0];
   }
 
-  private async update<T>(
+  public async update<T>(
     table: string,
     query: string,
     data: Record<string, unknown>,
@@ -161,6 +161,11 @@ export class OpenJoeyDB {
 
   async getUser(telegramId: number): Promise<OpenJoeyUser | null> {
     const rows = await this.get<OpenJoeyUser>("users", `telegram_id=eq.${telegramId}&limit=1`);
+    return rows[0] ?? null;
+  }
+
+  async getUserByReferralCode(code: string): Promise<OpenJoeyUser | null> {
+    const rows = await this.get<OpenJoeyUser>("users", `referral_code=eq.${code}&limit=1`);
     return rows[0] ?? null;
   }
 
@@ -309,6 +314,115 @@ export class OpenJoeyDB {
       total_earned: number;
       current_balance: number;
     }>("referral_leaderboard", `user_id=eq.${userId}&limit=1`);
+    return rows[0] ?? null;
+  }
+
+  async createReferral(data: {
+    referrer_id: string;
+    referred_id: string;
+    referrer_credit: number;
+    referred_credit: number;
+  }): Promise<void> {
+    await this.insert("referrals", {
+      ...data,
+      status: "pending",
+    });
+  }
+
+  async updateReferralStatus(
+    referredId: string,
+    status: "converted" | "paid" | "cancelled",
+  ): Promise<void> {
+    const updates: any = { status };
+    if (status === "converted") updates.converted_at = new Date().toISOString();
+    if (status === "paid") updates.paid_at = new Date().toISOString();
+
+    await this.update("referrals", `referred_id=eq.${referredId}`, updates);
+  }
+
+  // --------------- Quotas & Usage ---------------
+
+  async getUserQuota(userId: string): Promise<{
+    daily_skill_calls_used: number;
+    daily_expensive_skill_calls_used: number;
+    last_reset_at: string;
+  }> {
+    const rows = await this.get<{
+      daily_skill_calls_used: number;
+      daily_expensive_skill_calls_used: number;
+      last_reset_at: string;
+    }>("user_quotas", `user_id=eq.${userId}&limit=1`);
+
+    if (rows.length === 0) {
+      // Create quota record
+      await this.insert("user_quotas", { user_id: userId });
+      return {
+        daily_skill_calls_used: 0,
+        daily_expensive_skill_calls_used: 0,
+        last_reset_at: new Date().toISOString(),
+      };
+    }
+
+    // Check if needs reset (midnight UTC)
+    const lastReset = new Date(rows[0].last_reset_at);
+    const now = new Date();
+    if (lastReset.toDateString() !== now.toDateString()) {
+      await this.update("user_quotas", `user_id=eq.${userId}`, {
+        daily_skill_calls_used: 0,
+        daily_expensive_skill_calls_used: 0,
+        last_reset_at: now.toISOString(),
+      });
+      return {
+        daily_skill_calls_used: 0,
+        daily_expensive_skill_calls_used: 0,
+        last_reset_at: now.toISOString(),
+      };
+    }
+
+    return rows[0];
+  }
+
+  async incrementQuota(userId: string, costTier: "free" | "standard" | "expensive"): Promise<void> {
+    const quota = await this.getUserQuota(userId);
+
+    const updates: Record<string, number> = {};
+    if (costTier === "standard" || costTier === "expensive") {
+      updates.daily_skill_calls_used = quota.daily_skill_calls_used + 1;
+    }
+    if (costTier === "expensive") {
+      updates.daily_expensive_skill_calls_used = quota.daily_expensive_skill_calls_used + 1;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await this.update("user_quotas", `user_id=eq.${userId}`, updates);
+    }
+  }
+
+  async logSkillUsage(
+    userId: string,
+    skillName: string,
+    data: {
+      cost_usd: number;
+      tokens_used: number;
+      execution_time_ms: number;
+      success: boolean;
+      error_message?: string;
+      skill_category?: string;
+    },
+  ): Promise<void> {
+    await this.insert("skill_usage", {
+      user_id: userId,
+      skill_name: skillName,
+      ...data,
+    });
+  }
+
+  async getSkillMetadata(skillId: string): Promise<{
+    display_name: string;
+    cost_tier: string;
+    allowed_tiers: string[];
+  } | null> {
+    const rows = await this.get<any>("skill_catalog", `id=eq.${skillId}&limit=1`);
     return rows[0] ?? null;
   }
 

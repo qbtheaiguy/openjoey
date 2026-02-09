@@ -14,6 +14,9 @@ metadata:
 
 # Meme Guru — Degen Intelligence
 
+> [!TIP]
+> **NOTE**: Meme Guru is the successor to **meme-lord** and incorporates all advanced degen research patterns.
+
 > **⚠️ EXTREME RISK DISCLAIMER**: Meme coins are gambling. Most go to zero. Never invest more than you can afford to lose completely. This is NOT financial advice. Pure entertainment and research.
 
 ## Overview
