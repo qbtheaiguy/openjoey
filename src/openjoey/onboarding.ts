@@ -13,34 +13,27 @@ import { getOpenJoeyDB } from "./supabase-client.js";
 // Welcome message for new users
 // ──────────────────────────────────────────────
 
+const TELEGRAM_BOT_USERNAME = "OpenJoeyBot";
+
 export function getWelcomeMessage(
   displayName: string,
   referralCode: string,
   trialEndsAt: string,
 ): string {
-  const endsDate = new Date(trialEndsAt);
-  const daysLeft = Math.ceil((endsDate.getTime() - Date.now()) / 86400000);
+  const referralLink = referralCode
+    ? `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralCode}`
+    : "";
 
   return (
-    `Welcome to OpenJoey! 🦞\n\n` +
-    `Hey ${displayName}! I'm your personal AI trading assistant.\n\n` +
-    `✅ Your 3-day trial is active (${daysLeft} days left)\n\n` +
-    `During your trial you get:\n` +
-    `• Unlimited trading analysis (Signal Guru, Research Guru, Sentiment Tracker)\n` +
-    `• Up to 5 active price alerts\n` +
-    `• Full access to 25+ specialized trading skills\n\n` +
-    `Try me out! Send any token symbol or contract address:\n` +
-    `• "Analyze SOL"\n` +
-    `• "What's happening with BONK?"\n` +
-    `• "Set alert for JUP above $2"\n\n` +
-    `Your referral code: ${referralCode}\n` +
-    `Share openjoey.com/start?ref=${referralCode} — you get $1.80, they get $1.20!\n\n` +
-    `Commands:\n` +
-    `/status — Check your account\n` +
-    `/subscribe — Upgrade to full access\n` +
-    `/alerts — View your price alerts\n` +
-    `/referral — Your referral stats\n` +
-    `/help — All commands`
+    `Hey ${displayName} — I'm Joey. 🦞\n\n` +
+    `I'm your AI research partner: conversational so you can ask in plain English, and a researcher so I dig into signals, on-chain flow, sentiment, and macro — you get answers, not just data.\n\n` +
+    `You've got 3 days of full access to the whole suite: Signal Guru, Research Guru, Whale Tracker, Sentiment Tracker, and the rest. Use it like a pro.\n\n` +
+    `Try me:\n` +
+    `Send a ticker (e.g. SOL or BONK) or ask "What's the sentiment on BTC?" or "Set alert for JUP above $2".\n\n` +
+    `Refer friends:\n` +
+    `Earn $1.80 per referral (they get $1.20 off). Invite friends to join you — stack referrals and put it toward your next month's subscription.\n` +
+    (referralLink ? `${referralLink}\n\n` : "\n") +
+    `Commands: /status · /subscribe · /alerts · /referral · /help`
   );
 }
 
