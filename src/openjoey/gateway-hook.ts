@@ -12,6 +12,7 @@
  * The gateway calls these hooks at specific points in the message lifecycle.
  */
 
+import { getCachedReply, setCachedReply } from "./cache/reply-cache.js";
 import {
   getPostChartFomo,
   getBlockedActionMessage,
@@ -52,6 +53,8 @@ export interface IncomingTelegramMessage {
 export interface HookResult {
   /** If set, reply with this immediately and don't pass to the agent. */
   directReply?: string;
+  /** If set, reply with this cached reply and skip the agent (Phase 3 reply cache). */
+  cachedReply?: string;
   /** Session key for the OpenClaw agent. */
   sessionKey: string;
   /** User's tier. */
@@ -124,7 +127,7 @@ async function handleSlashCommand(msg: IncomingTelegramMessage): Promise<string 
 
     case "/alerts": {
       // Delegate to the agent with context
-      return null; // Let the agent handle it via the price-alerts skill
+      return null; // Let the agent handle it via the alert-guru skill
     }
 
     default:
@@ -212,6 +215,20 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
     }
   }
 
+  // 5. Reply cache: skip agent if we have a recent cached reply (Phase 3)
+  const cached = await getCachedReply(msg.text);
+  if (cached) {
+    return {
+      sessionKey,
+      tier: session.tier,
+      allowedSkills: getAllowedSkills(session.tier),
+      permissions: getTierPermissions(session.tier),
+      userId: session.userId,
+      shouldProcess: false,
+      cachedReply: cached,
+    };
+  }
+
   return {
     sessionKey,
     tier: session.tier,
@@ -225,11 +242,15 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
 
 /**
  * Called after the agent generates a response (for post-processing).
+ * When replyText and context.incomingMessage are set, the reply is cached for Phase 3.
  */
 export async function onAgentResponse(
   telegramId: number,
-  _agentResponse: string,
+  replyText: string,
+  context?: { incomingMessage?: string },
 ): Promise<string | null> {
-  // Record usage
+  if (replyText?.trim() && context?.incomingMessage?.trim()) {
+    await setCachedReply(context.incomingMessage, replyText);
+  }
   return postAnalysisHook(telegramId);
 }

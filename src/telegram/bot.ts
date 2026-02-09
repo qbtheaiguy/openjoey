@@ -406,6 +406,14 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         }).catch(() => bot.api.sendMessage(chatId, hookResult.directReply!));
         return;
       }
+      if (hookResult.cachedReply) {
+        await withTelegramApiErrorLogging({
+          operation: "sendMessage (OpenJoey cachedReply)",
+          fn: () =>
+            bot.api.sendMessage(chatId, hookResult.cachedReply!, { parse_mode: "Markdown" }),
+        }).catch(() => bot.api.sendMessage(chatId, hookResult.cachedReply!));
+        return;
+      }
       if (!hookResult.shouldProcess) {
         return;
       }

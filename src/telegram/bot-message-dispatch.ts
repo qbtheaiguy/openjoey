@@ -253,6 +253,8 @@ export const dispatchTelegramMessage = async ({
     delivered: false,
     skippedNonSilent: 0,
   };
+  /** Accumulated reply text for OpenJoey reply cache (Phase 3). */
+  const replyChunks: string[] = [];
 
   const { queuedFinal } = await dispatchReplyWithBufferedBlockDispatcher({
     ctx: ctxPayload,
@@ -281,6 +283,9 @@ export const dispatchTelegramMessage = async ({
         });
         if (result.delivered) {
           deliveryState.delivered = true;
+          if (payload.text?.trim()) {
+            replyChunks.push(payload.text.trim());
+          }
         }
       },
       onSkip: (_payload, info) => {
@@ -374,7 +379,11 @@ export const dispatchTelegramMessage = async ({
   }
 
   if (hasFinalResponse && openjoeyTelegramId != null) {
-    onAgentResponse(openjoeyTelegramId, "").catch((err) => {
+    const accumulatedReply = replyChunks.join("\n").trim();
+    const incomingMessage = context.ctxPayload.RawBody ?? context.ctxPayload.Body ?? "";
+    onAgentResponse(openjoeyTelegramId, accumulatedReply, {
+      incomingMessage: incomingMessage || undefined,
+    }).catch((err) => {
       runtime.error?.(danger(`telegram OpenJoey onAgentResponse failed: ${String(err)}`));
     });
   }
