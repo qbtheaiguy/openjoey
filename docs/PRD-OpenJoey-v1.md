@@ -186,6 +186,7 @@ After each free analysis, Joey drops subtle FOMO:
 - **Webhook URL:** `https://api.openjoey.com/webhook/telegram`
 - **Handler:** Routes messages to correct user session
 - **Isolation:** Each user gets `session_key = user:${telegram_id}`
+- **First-time UX:** Use `dmPolicy: "open"` and `allowFrom: ["*"]` so new users see the welcome message (not the pairing screen). See [openjoey-telegram-first-time-ux.md](install/openjoey-telegram-first-time-ux.md).
 
 #### 3.2.2 OpenClaw Gateway (Hetzner)
 

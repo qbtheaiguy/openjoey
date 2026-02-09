@@ -28,29 +28,57 @@ export function deriveSessionKey(telegramId: number): string {
 
 /**
  * Determine which skills a user has access to based on their tier.
+ *
+ * Guru Skills Hierarchy:
+ * - Free/Trial: Basic analysis skills
+ * - Trader/Annual: Multi-asset + alerts + whale tracking
+ * - Premium: Everything + options + advanced features
  */
 export function getAllowedSkills(tier: string): string[] {
-  const BASE_SKILLS = ["signal-fusion", "trading-god"];
-  const SUBSCRIBER_SKILLS = ["price-alerts", "whale-tracker"];
+  // Core analysis skills - available to all tiers
+  const CORE_SKILLS = [
+    "signal-guru", // Master multi-asset analyzer
+    "research-guru", // Deep research system
+    "crypto-guru", // Crypto-specific deep dives
+    "meme-guru", // Meme coin degen intelligence
+    "edy", // Personalized skill for Edy (GBP/USD, Gold, DJ30, GER40, NSDQ100) 💕
+  ];
+
+  // Multi-asset skills - available to trial and up
+  const MULTIASSET_SKILLS = [
+    "stock-guru", // Stocks & ETFs
+    "forex-guru", // Currency pairs
+    "commodity-guru", // Gold, oil, etc.
+  ];
+
+  // Subscriber-only skills - trader, annual, premium
+  const SUBSCRIBER_SKILLS = [
+    "whale-guru", // Whale tracking & smart money
+    "alert-guru", // Price alerts (background monitoring)
+  ];
+
+  // Premium-only skills
   const PREMIUM_SKILLS = [
-    "signal-fusion-pro",
-    "trading-god-pro",
-    "custom-strategies",
-    "api-access",
+    "options-guru", // Options chain analysis & Greeks
+    "api-access", // Direct API access
   ];
 
   switch (tier) {
     case "trial":
-      return [...BASE_SKILLS, "price-alerts"]; // Trial gets alerts (5 limit)
+      // Trial gets core + multi-asset + limited alerts
+      return [...CORE_SKILLS, ...MULTIASSET_SKILLS, "alert-guru"];
     case "free":
-      return BASE_SKILLS;
+      // Free tier gets minimal skills
+      return CORE_SKILLS;
     case "trader":
     case "annual":
-      return [...BASE_SKILLS, ...SUBSCRIBER_SKILLS];
+      // Full subscriber access except premium
+      return [...CORE_SKILLS, ...MULTIASSET_SKILLS, ...SUBSCRIBER_SKILLS];
     case "premium":
-      return [...BASE_SKILLS, ...SUBSCRIBER_SKILLS, ...PREMIUM_SKILLS];
+      // Everything unlocked
+      return [...CORE_SKILLS, ...MULTIASSET_SKILLS, ...SUBSCRIBER_SKILLS, ...PREMIUM_SKILLS];
     default:
-      return BASE_SKILLS;
+      return CORE_SKILLS;
   }
 }
 

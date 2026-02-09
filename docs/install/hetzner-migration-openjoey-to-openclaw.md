@@ -14,14 +14,14 @@ This guide replaces your **old OpenJoey** app on the same Hetzner server with **
 
 ## What we are doing
 
-| Step | Action |
-|------|--------|
-| A | Back up existing config and credentials (so we keep tokens, model, Telegram) |
-| B | Stop and remove the old OpenJoey process/container and optional old code |
-| C | Keep or create the persistent host directories for OpenClaw |
-| D | Deploy this codebase via Docker (build + run) |
-| E | Restore or set config: Kimi K 2.5 default, Telegram only |
-| F | Verify and use the same SSH tunnel |
+| Step | Action                                                                       |
+| ---- | ---------------------------------------------------------------------------- |
+| A    | Back up existing config and credentials (so we keep tokens, model, Telegram) |
+| B    | Stop and remove the old OpenJoey process/container and optional old code     |
+| C    | Keep or create the persistent host directories for OpenClaw                  |
+| D    | Deploy this codebase via Docker (build + run)                                |
+| E    | Restore or set config: Kimi K 2.5 default, Telegram only                     |
+| F    | Verify and use the same SSH tunnel                                           |
 
 ---
 
@@ -187,18 +187,19 @@ sudo nano /root/.openclaw/openclaw.json
 
 ```json5
 {
-  "agents": {
-    "defaults": {
-      "model": { "primary": "moonshot/kimi-k2.5" }
-    }
+  agents: {
+    defaults: {
+      model: { primary: "moonshot/kimi-k2.5" },
+    },
   },
-  "channels": {
-    "telegram": {
-      "enabled": true,
-      "botToken": "YOUR_TELEGRAM_BOT_TOKEN",
-      "dmPolicy": "pairing"
-    }
-  }
+  channels: {
+    telegram: {
+      enabled: true,
+      botToken: "YOUR_TELEGRAM_BOT_TOKEN",
+      dmPolicy: "open",
+      allowFrom: ["*"],
+    },
+  },
 }
 ```
 

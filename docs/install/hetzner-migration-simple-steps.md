@@ -174,7 +174,8 @@ If the file is empty or doesn’t exist, paste this (then change the bot token t
     "telegram": {
       "enabled": true,
       "botToken": "PUT_YOUR_TELEGRAM_BOT_TOKEN_HERE",
-      "dmPolicy": "pairing"
+      "dmPolicy": "open",
+      "allowFrom": ["*"]
     }
   }
 }
@@ -198,7 +199,7 @@ Wait until it finishes (can take a few minutes). Then start the gateway:
 docker compose up -d openclaw-gateway
 ```
 
-- “Up -d” means “run in the background”. You should see something like “Container openclaw-openclaw-gateway-1  Started”.
+- “Up -d” means “run in the background”. You should see something like “Container openclaw-openclaw-gateway-1 Started”.
 
 ### Step 14 — Check that it’s running
 

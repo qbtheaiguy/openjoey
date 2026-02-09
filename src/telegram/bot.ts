@@ -414,6 +414,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         sessionKeyOverride: hookResult.sessionKey,
         responseSuffix: hookResult.responseSuffix,
         openjoeyTelegramId: telegramId,
+        skillFilterOverride: hookResult.allowedSkills,
       });
     } catch (err) {
       runtime.error?.(danger(`OpenJoey telegram hook failed: ${String(err)}`));

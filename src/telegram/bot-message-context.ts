@@ -70,6 +70,8 @@ type TelegramMessageContextOptions = {
   responseSuffix?: string;
   /** OpenJoey: Telegram user id for DM; used for post-response hook (e.g. usage). */
   openjoeyTelegramId?: number;
+  /** OpenJoey: per-user skill allowlist (from tier + DB); only these skills are loaded for this DM. */
+  skillFilterOverride?: string[];
 };
 
 type TelegramLogger = {
@@ -565,7 +567,11 @@ export const buildTelegramMessageContext = async ({
     });
   }
 
-  const skillFilter = firstDefined(topicConfig?.skills, groupConfig?.skills);
+  const skillFilter = firstDefined(
+    options?.skillFilterOverride,
+    topicConfig?.skills,
+    groupConfig?.skills,
+  );
   const systemPromptParts = [
     groupConfig?.systemPrompt?.trim() || null,
     topicConfig?.systemPrompt?.trim() || null,
