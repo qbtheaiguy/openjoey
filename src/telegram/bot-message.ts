@@ -58,6 +58,7 @@ export const createTelegramMessageProcessor = (deps: TelegramMessageProcessorDep
       sessionKeyOverride?: string;
       responseSuffix?: string;
       openjoeyTelegramId?: number;
+      skillFilterOverride?: string[];
     },
   ) => {
     const context = await buildTelegramMessageContext({
