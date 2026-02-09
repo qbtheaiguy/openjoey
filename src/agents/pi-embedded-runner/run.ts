@@ -27,6 +27,7 @@ import {
 } from "../model-auth.js";
 import { normalizeProviderId } from "../model-selection.js";
 import { ensureOpenClawModelsJson } from "../models-config.js";
+import { resolveImplicitProviders } from "../models-config.providers.js";
 import {
   BILLING_ERROR_USER_MESSAGE,
   classifyFailoverReason,
@@ -180,11 +181,27 @@ export async function runEmbeddedPiAgent(
         (params.config?.agents?.defaults?.model?.fallbacks?.length ?? 0) > 0;
       await ensureOpenClawModelsJson(params.config, agentDir);
 
+      // Merge implicit providers (from env, e.g. MOONSHOT_API_KEY) so resolveModel sees them
+      // even when config file has no models.providers or was loaded before env was set.
+      const implicitProviders = await resolveImplicitProviders({ agentDir });
+      const explicitProviders = params.config?.models?.providers ?? {};
+      const mergedProviders = { ...implicitProviders, ...explicitProviders };
+      const configForResolve =
+        Object.keys(mergedProviders).length > 0
+          ? {
+              ...params.config,
+              models: {
+                ...params.config?.models,
+                providers: mergedProviders,
+              },
+            }
+          : params.config;
+
       const { model, error, authStorage, modelRegistry } = resolveModel(
         provider,
         modelId,
         agentDir,
-        params.config,
+        configForResolve,
       );
       if (!model) {
         throw new Error(error ?? `Unknown model: ${provider}/${modelId}`);

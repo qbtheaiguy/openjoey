@@ -31,6 +31,7 @@ import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../defaults.js";
 import { resolveOpenClawDocsPath } from "../docs-path.js";
 import { getApiKeyForModel, resolveModelAuthMode } from "../model-auth.js";
 import { ensureOpenClawModelsJson } from "../models-config.js";
+import { resolveImplicitProviders } from "../models-config.providers.js";
 import {
   ensureSessionHeader,
   validateAnthropicTurns,
@@ -122,11 +123,24 @@ export async function compactEmbeddedPiSessionDirect(
   const modelId = (params.model ?? DEFAULT_MODEL).trim() || DEFAULT_MODEL;
   const agentDir = params.agentDir ?? resolveOpenClawAgentDir();
   await ensureOpenClawModelsJson(params.config, agentDir);
+  const implicitProviders = await resolveImplicitProviders({ agentDir });
+  const explicitProviders = params.config?.models?.providers ?? {};
+  const mergedProviders = { ...implicitProviders, ...explicitProviders };
+  const configForResolve =
+    Object.keys(mergedProviders).length > 0
+      ? {
+          ...params.config,
+          models: {
+            ...params.config?.models,
+            providers: mergedProviders,
+          },
+        }
+      : params.config;
   const { model, error, authStorage, modelRegistry } = resolveModel(
     provider,
     modelId,
     agentDir,
-    params.config,
+    configForResolve,
   );
   if (!model) {
     return {
