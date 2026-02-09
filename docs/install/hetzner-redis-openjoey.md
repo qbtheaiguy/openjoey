@@ -13,17 +13,19 @@ sudo systemctl enable redis-server
 sudo systemctl start redis-server
 ```
 
-By default Redis listens on `127.0.0.1:6379`. To allow the gateway (running on the same host) to use it:
+By default Redis listens on `127.0.0.1:6379`. The gateway uses the same URL whether it runs in Docker or on the host.
 
-- Leave bind as `127.0.0.1` (default) so only local processes can connect.
+- Leave Redis bind as `127.0.0.1` (default) so only local processes can connect.
 - Set in the gateway environment: `OPENJOEY_REDIS_URL=redis://127.0.0.1:6379` or `REDIS_URL=redis://127.0.0.1:6379`.
 
 ## Add Redis URL to gateway env
 
+The gateway Compose file uses `network_mode: host`, so the container shares the host network and `127.0.0.1` in the container is the host. No Redis config change is needed; the same URL works for Docker and bare-metal.
+
 If the gateway runs via Docker Compose and uses a `.env` file in the project dir (e.g. `/root/openclaw/.env`):
 
 ```bash
-echo 'OPENJOEY_REDIS_URL=redis://127.0.0.1:6379' >> /root/openclaw/.env
+grep -q '^OPENJOEY_REDIS_URL=' .env 2>/dev/null || echo 'OPENJOEY_REDIS_URL=redis://127.0.0.1:6379' >> .env
 docker compose restart openclaw-gateway
 ```
 

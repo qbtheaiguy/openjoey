@@ -32,9 +32,15 @@ if [ "${SKIP_INSTALL:-0}" != "1" ]; then
   echo "Redis installed and running."
 fi
 
-echo "Adding OPENJOEY_REDIS_URL to gateway .env and restarting..."
+echo "Setting OPENJOEY_REDIS_URL in gateway .env and restarting..."
+# Pass REDIS_URL so remote gets literal value (gateway uses network_mode: host → 127.0.0.1)
 ssh -i "$SSH_KEY" "$HETZNER_HOST" "cd /root/openclaw && \
-  grep -q '^OPENJOEY_REDIS_URL=' .env 2>/dev/null || echo OPENJOEY_REDIS_URL=$REDIS_URL >> .env; \
+  V='$REDIS_URL'; \
+  if grep -q '^OPENJOEY_REDIS_URL=' .env 2>/dev/null; then \
+    sed -i \"s|^OPENJOEY_REDIS_URL=.*|OPENJOEY_REDIS_URL=\$V|\" .env; \
+  else \
+    echo \"OPENJOEY_REDIS_URL=\$V\" >> .env; \
+  fi; \
   docker compose restart openclaw-gateway 2>/dev/null || true; \
   echo Done."
 
