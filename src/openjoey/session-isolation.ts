@@ -38,14 +38,14 @@ export function getAllowedSkills(tier: string): string[] {
   // Core analysis skills - available to most tiers except Free
   const CORE_SKILLS = [
     "edy", // Personalized skill for Edy (GBP/USD, Gold, DJ30, GER40, NSDQ100) 💕
-  ];
-
-  // Professional trading skills - available to trial and subscribers
-  const TRADING_SKILLS = [
     "signal-guru", // Master multi-asset analyzer
     "research-guru", // Deep research system
     "crypto-guru", // Crypto-specific deep dives
     "meme-guru", // Meme coin degen intelligence
+  ];
+
+  // Professional trading skills - available to trial and subscribers
+  const TRADING_SKILLS = [
     "stock-guru", // Stocks & ETFs
     "forex-guru", // Currency pairs
     "commodity-guru", // Gold, oil, etc.

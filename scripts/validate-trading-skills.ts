@@ -372,7 +372,7 @@ function checkSessionIsolation(skillsDir: string): TierCheckResult[] {
 
   // Extract skill arrays from the file
   const coreMatch = content.match(/CORE_SKILLS\s*=\s*\[([\s\S]*?)\]/);
-  const multiAssetMatch = content.match(/MULTIASSET_SKILLS\s*=\s*\[([\s\S]*?)\]/);
+  const multiAssetMatch = content.match(/TRADING_SKILLS\s*=\s*\[([\s\S]*?)\]/);
   const subscriberMatch = content.match(/SUBSCRIBER_SKILLS\s*=\s*\[([\s\S]*?)\]/);
   const premiumMatch = content.match(/PREMIUM_SKILLS\s*=\s*\[([\s\S]*?)\]/);
 
