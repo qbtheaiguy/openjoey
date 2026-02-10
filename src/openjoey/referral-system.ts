@@ -2,8 +2,12 @@
  * OpenJoey Referral System
  *
  * Implements the $3 Split Model:
- * - $1.80 for the Referrer
- * - $1.20 for the New User
+ * - $1.80 for the Referrer (only when the referred user PAYS)
+ * - $1.20 discount for the referred user (on first payment)
+ *
+ * Important: Credit is granted only when the referred user pays (converts).
+ * Invite-only does NOT grant any balance — otherwise users could invite
+ * themselves (alt accounts) and earn without ever paying.
  */
 
 import { getOpenJoeyDB } from "./supabase-client.js";
@@ -12,8 +16,10 @@ const REFERRER_REWARD = 1.8;
 const REFERRED_REWARD = 1.2;
 
 /**
- * Attribues a new user to a referrer based on a referral code.
- * Called during the registration process.
+ * Attributes a new user to a referrer based on a referral code.
+ * Called during registration (signup). Creates a pending referral record only.
+ * No balance or credit is added here — that happens only in rewardReferral
+ * when the referred user actually pays (e.g. Stripe webhook).
  */
 export async function attributeReferral(
   referredUserId: string,
@@ -49,10 +55,16 @@ export async function attributeReferral(
 }
 
 /**
- * Processes a successful subscription and rewards the referrer.
- * Called when a user's status changes to 'active' (e.g. via Stripe webhook).
- * Returns the referrer's user_id if a referral was paid, so the caller can
- * call checkAndSendReferralMilestones(referrerId, sendMessage) for §9.9 nudge.
+ * Processes a successful payment by the referred user and marks the referral as paid.
+ * Call this only when the referred user has actually paid (e.g. Stripe subscription
+ * webhook, first payment confirmed). Do NOT call on signup — credit only on payment.
+ *
+ * The caller is responsible for:
+ * - Adding $1.80 to the referrer's balance (e.g. credit_balance in users).
+ * - Applying $1.20 discount to the referred user's first payment.
+ *
+ * Returns the referrer's user_id if a referral was marked paid, so the caller can
+ * credit the referrer and call checkAndSendReferralMilestones(referrerId, sendMessage).
  */
 export async function rewardReferral(referredUserId: string): Promise<string | null> {
   const db = getOpenJoeyDB();

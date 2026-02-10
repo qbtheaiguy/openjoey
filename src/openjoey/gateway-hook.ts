@@ -103,6 +103,151 @@ function isSlashCommand(text: string): boolean {
   return SLASH_COMMANDS.has(cmd);
 }
 
+// ──────────────────────────────────────────────
+// Code-generation restriction (non-admin users)
+// Prevents API cost from coding requests; admin has no restriction.
+// ──────────────────────────────────────────────
+
+/** Injected into system prompt for non-admin users so the model refuses code requests. */
+const USER_CODE_RESTRICTION_PROMPT = `[CRITICAL - You are in user/subscriber mode]
+You CANNOT and WILL NOT: write code, scripts, or programs; build apps, websites, or software; create bots, automation, or technical tools; provide coding tutorials or debugging help; generate technical architecture or system designs.
+You CAN ONLY help with: cryptocurrency trading and analysis, market research and token discovery, price alerts and whale tracking, portfolio management, general crypto education, and conversational support.
+If the user asks for code, apps, websites, or technical development, respond briefly: "I'm designed to help with crypto trading and research. For coding assistance, please contact the admin." Do not generate any code or technical implementation.`;
+
+/** Phrases that indicate a code/development request; block before calling the AI for non-admins. */
+const CODE_REQUEST_PHRASES = [
+  "write code",
+  "write me code",
+  "code for",
+  "give me code",
+  "send code",
+  "build app",
+  "build an app",
+  "create app",
+  "make an app",
+  "build website",
+  "create website",
+  "build a site",
+  "write script",
+  "write a script",
+  "create script",
+  "program",
+  "programming",
+  "develop",
+  "developer",
+  "build a bot",
+  "make a bot",
+  "create a bot",
+  "smart contract",
+  "javascript",
+  "python",
+  "solidity",
+  "typescript",
+  "node.js",
+  "nodejs",
+  "html",
+  "css",
+  "react",
+  "vue",
+  "angular",
+  "api ",
+  " function",
+  "function ",
+  "script to",
+  "automate",
+  "programmatically",
+  "github",
+  "git ",
+  "deploy",
+  "server",
+  "database",
+  "backend",
+  "frontend",
+  "debug",
+  "fix my code",
+  "code that",
+  "script that",
+  "algorithm",
+  "implement",
+  "sdk",
+  "library",
+  "package",
+  "npm ",
+  "pip install",
+  "import ",
+  "require(",
+  "console.log",
+  "async function",
+  "class ",
+  "lambda",
+  "docker",
+  "kubernetes",
+  "sql query",
+  "write a query",
+  "build tool",
+  "cli tool",
+  "command line",
+  "automation script",
+];
+
+function containsCodeRequest(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  return CODE_REQUEST_PHRASES.some((p) => lower.includes(p));
+}
+
+/** Message sent when a non-admin triggers the code-request pre-filter (no API call). */
+const CODE_REQUEST_BLOCK_REPLY =
+  'I\'m designed to help with crypto trading, market research, and analysis — not coding or development.\n\nTry: "Analyze ETH" or "Set alert for SOL" or "What\'s trending?"';
+
+/** Safe fallback when post-filter detects code in AI reply (non-admin). */
+const CODE_IN_REPLY_FALLBACK =
+  "I can help with crypto trading and research instead. What token would you like to analyze or track?";
+
+/** Patterns that indicate code content in a reply (for post-response safety net). */
+const CODE_CONTENT_PATTERNS = [
+  /```[\s\S]*?```/g, // fenced code blocks
+  /`[^`\n]+`/g, // inline code (short)
+  /\b(function|def|class|import|from)\s+\w+\s*[\(\:]/,
+  /\b(interface|type)\s+\w+\s*[\{\=]/,
+  /<script[\s>]/i,
+  /require\s*\(\s*['"]/,
+  /console\.log\s*\(/,
+  /\b(def|async\s+def)\s+\w+\s*\(/,
+];
+
+/**
+ * Returns true if the text appears to contain code (for post-response filter).
+ * Used as a safety net for non-admin users so we don't send code even if the model leaked it.
+ */
+export function containsCodeContent(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  return CODE_CONTENT_PATTERNS.some((p) => {
+    if (p instanceof RegExp) {
+      const match = trimmed.match(p);
+      return match != null && (p.global ? match.length > 0 : true);
+    }
+    return false;
+  });
+}
+
+/**
+ * If the reply contains code-like content, returns a safe replacement for non-admin users.
+ * Otherwise returns the original text. Call this before sending the reply to the user.
+ */
+export function filterCodeFromReply(text: string): string {
+  if (!containsCodeContent(text)) return text;
+  // Strip fenced code blocks and replace with a single placeholder line
+  let out = text
+    .replace(/```[\s\S]*?```/g, "\n[Code block removed.]\n")
+    .replace(/`[^`\n]{2,200}`/g, "[code]");
+  // If what's left is mostly code-ish or very short, replace entirely
+  if (containsCodeContent(out) || out.trim().length < 80) {
+    return CODE_IN_REPLY_FALLBACK;
+  }
+  return out.trim();
+}
+
 async function handleSlashCommand(msg: IncomingTelegramMessage): Promise<string | null> {
   const parts = msg.text.trim().split(" ");
   const cmd = parts[0].toLowerCase();
@@ -376,6 +521,20 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
     };
   }
 
+  // 5b. Code-request pre-filter: block coding/development requests for non-admins (saves API cost)
+  if (session.role !== "admin" && containsCodeRequest(msg.text)) {
+    return {
+      directReply: CODE_REQUEST_BLOCK_REPLY,
+      sessionKey,
+      tier: session.tier,
+      allowedSkills: getAllowedSkillsForRole(session.role),
+      allowAllSkills: false,
+      permissions: getTierPermissions(session.tier),
+      userId: session.userId,
+      shouldProcess: false,
+    };
+  }
+
   // 6. AI integration (§6 of UI/UX doc):
   //    - Reorder skills so user favorites come first in the tool list.
   //    - Build a short userContext note with favorites + watchlist for AI awareness.
@@ -413,8 +572,17 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
     if (contextParts.length > 0) {
       userContext = `[User preferences] ${contextParts.join(" ")}`;
     }
+    // Non-admin: inject code restriction so model refuses code requests even if pre-filter missed
+    if (session.role !== "admin") {
+      userContext = userContext
+        ? `${USER_CODE_RESTRICTION_PROMPT}\n\n${userContext}`
+        : USER_CODE_RESTRICTION_PROMPT;
+    }
   } catch {
     // Non-fatal: favorites reorder fails → use default order
+  }
+  if (session.role !== "admin" && !userContext) {
+    userContext = USER_CODE_RESTRICTION_PROMPT;
   }
 
   return {

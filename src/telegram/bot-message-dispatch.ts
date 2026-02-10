@@ -21,7 +21,7 @@ import { createReplyPrefixOptions } from "../channels/reply-prefix.js";
 import { createTypingCallbacks } from "../channels/typing.js";
 import { resolveMarkdownTableMode } from "../config/markdown-tables.js";
 import { danger, logVerbose } from "../globals.js";
-import { onAgentResponse } from "../openjoey/gateway-hook.js";
+import { filterCodeFromReply, onAgentResponse } from "../openjoey/gateway-hook.js";
 import { deliverReplies } from "./bot/delivery.js";
 import { resolveTelegramDraftStreamingChunking } from "./draft-chunking.js";
 import { createTelegramDraftStream } from "./draft-stream.js";
@@ -267,8 +267,13 @@ export const dispatchTelegramMessage = async ({
           await flushDraft();
           draftStream?.stop();
         }
+        // Post-response code filter for OpenJoey non-admins (safety net if model emitted code)
+        const toDeliver =
+          openjoeyTelegramId != null && skillFilterAllowAll !== true && payload.text != null
+            ? { ...payload, text: filterCodeFromReply(payload.text) }
+            : payload;
         const result = await deliverReplies({
-          replies: [payload],
+          replies: [toDeliver],
           chatId: String(chatId),
           token: opts.token,
           runtime,
@@ -284,8 +289,9 @@ export const dispatchTelegramMessage = async ({
         });
         if (result.delivered) {
           deliveryState.delivered = true;
-          if (payload.text?.trim()) {
-            replyChunks.push(payload.text.trim());
+          const textToCache = toDeliver.text ?? payload.text;
+          if (textToCache?.trim()) {
+            replyChunks.push(textToCache.trim());
           }
         }
       },

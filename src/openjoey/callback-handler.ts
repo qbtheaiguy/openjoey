@@ -458,7 +458,7 @@ async function handleReferralCallback(
       text += "$0.00 earned \u2014 share your link to start!\n\n";
     }
     text += "How it works:\n";
-    text += "\u2022 You get $1.80 per referred subscriber\n";
+    text += "\u2022 You get $1.80 when they *pay* (first subscription)\n";
     text += "\u2022 They get $1.20 off their first month\n";
     text += "\u2022 Refer 6 friends \u2248 free month\n\n";
     text += `Your link (tap to copy):\n${link}`;
