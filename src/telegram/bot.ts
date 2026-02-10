@@ -27,6 +27,8 @@ import { enqueueSystemEvent } from "../infra/system-events.js";
 import { getChildLogger } from "../logging.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { onTelegramMessage } from "../openjoey/gateway-hook.js";
+import { getOpenJoeyDB } from "../openjoey/supabase-client.js";
+import { extractTokenSymbol } from "../openjoey/token-extract.js";
 import { resolveAgentRoute } from "../routing/resolve-route.js";
 import { resolveTelegramAccount } from "./accounts.js";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
@@ -46,6 +48,7 @@ import {
   resolveTelegramStreamMode,
 } from "./bot/helpers.js";
 import { resolveTelegramFetch } from "./fetch.js";
+import { buildInlineKeyboard } from "./send.js";
 import { wasSentByBot } from "./sent-message-cache.js";
 
 export type TelegramBotOptions = {
@@ -399,11 +402,21 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         startPayload,
       });
       if (hookResult.directReply) {
+        const replyMarkup = hookResult.replyMarkup
+          ? buildInlineKeyboard(hookResult.replyMarkup)
+          : undefined;
         await withTelegramApiErrorLogging({
           operation: "sendMessage (OpenJoey directReply)",
           fn: () =>
-            bot.api.sendMessage(chatId, hookResult.directReply!, { parse_mode: "Markdown" }),
-        }).catch(() => bot.api.sendMessage(chatId, hookResult.directReply!));
+            bot.api.sendMessage(chatId, hookResult.directReply!, {
+              parse_mode: "Markdown",
+              ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+            }),
+        }).catch(() =>
+          bot.api.sendMessage(chatId, hookResult.directReply!, {
+            ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+          }),
+        );
         return;
       }
       if (hookResult.cachedReply) {
@@ -424,7 +437,72 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         openjoeyTelegramId: telegramId,
         skillFilterOverride: hookResult.allowedSkills,
         skillFilterAllowAll: hookResult.allowAllSkills,
+        userContext: hookResult.userContext,
       });
+
+      // ── Post-reply triggers (all non-fatal) ──
+      if (hookResult.userId) {
+        try {
+          const ojDb = getOpenJoeyDB();
+
+          // 1. "Add to watchlist?" — when message looks like a token query
+          const symbol = extractTokenSymbol(text);
+          if (symbol) {
+            const alreadyInWatchlist = await ojDb.isInWatchlist(hookResult.userId, symbol);
+            if (!alreadyInWatchlist) {
+              const keyboard = buildInlineKeyboard([
+                [
+                  {
+                    text: `\u{1F4CB} Add ${symbol} to watchlist`,
+                    callback_data: `w:add:${symbol}`,
+                  },
+                  { text: "Not now", callback_data: "w:dismiss" },
+                ],
+              ]);
+              await bot.api
+                .sendMessage(chatId, `\u{1F4A1} Want to track *${symbol}*?`, {
+                  parse_mode: "Markdown",
+                  reply_markup: keyboard,
+                })
+                .catch(() => {});
+            }
+          }
+
+          // 2. "Favorite this skill?" — when a skill has been used 3+ times
+          //    and isn't already a favorite. We check the top skill from skill_use.
+          //    (The skill counter is incremented in skill-guard-hook.ts on each use.)
+          const skillUses = await ojDb
+            .get<{ skill_name: string; use_count: number }>(
+              "user_skill_use",
+              `user_id=eq.${hookResult.userId}&order=last_used.desc&limit=1`,
+            )
+            .catch(() => []);
+          if (skillUses.length > 0 && skillUses[0].use_count === 2) {
+            const recentSkill = skillUses[0].skill_name;
+            const alreadyFavorited = await ojDb.isFavorited(hookResult.userId, recentSkill);
+            if (!alreadyFavorited) {
+              const keyboard = buildInlineKeyboard([
+                [
+                  {
+                    text: `\u2B50 Add ${recentSkill} to favorites`,
+                    callback_data: `s:fav:${recentSkill}`,
+                  },
+                  { text: "No thanks", callback_data: "s:dismiss" },
+                ],
+              ]);
+              await bot.api
+                .sendMessage(
+                  chatId,
+                  `You\u2019ve used *${recentSkill}* a couple of times now. Add to favorites for quick access?`,
+                  { parse_mode: "Markdown", reply_markup: keyboard },
+                )
+                .catch(() => {});
+            }
+          }
+        } catch {
+          // Non-fatal: post-reply prompts fail silently
+        }
+      }
     } catch (err) {
       runtime.error?.(danger(`OpenJoey telegram hook failed: ${String(err)}`));
       await baseProcessMessage(primaryCtx, allMedia, storeAllowFrom, options);

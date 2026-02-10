@@ -20,26 +20,49 @@ import { getOpenJoeyDB } from "./supabase-client.js";
 
 const TELEGRAM_BOT_USERNAME = "OpenJoeyBot";
 
+/**
+ * Day-1 welcome message: short, clear, matches progressive disclosure.
+ * No referral, no trial dates, no clutter. The inline keyboard handles CTAs.
+ */
 export function getWelcomeMessage(
   displayName: string,
+  _referralCode: string,
+  _trialEndsAt: string,
+): string {
+  return (
+    `Hey ${displayName} — I'm Joey. 🦞\n\n` +
+    `I'm your AI trading assistant. I research markets 24/7 so you can focus on execution.\n\n` +
+    `Let's start with something simple:\n\n` +
+    `💡 Try: "What's happening with SOL?" or "Find new meme coins"`
+  );
+}
+
+/**
+ * Returning-user welcome: shown when existing user taps /start again.
+ * Includes referral line + trial/subscription reminder since they're past day-1.
+ */
+export function getReturningWelcomeMessage(
+  displayName: string,
   referralCode: string,
-  trialEndsAt: string,
+  tier: string,
 ): string {
   const referralLink = referralCode
     ? `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralCode}`
     : "";
 
-  return (
-    `Hey ${displayName} — I'm Joey. 🦞\n\n` +
-    `I'm your AI research partner: conversational so you can ask in plain English, and a researcher so I dig into signals, on-chain flow, sentiment, and macro — you get answers, not just data.\n\n` +
-    `You've got 3 days of full access to the whole suite: Signal Guru, Research Guru, Whale Tracker, Sentiment Tracker, and the rest. Use it like a pro.\n\n` +
-    `Try me:\n` +
-    `Send a ticker (e.g. SOL or BONK) or ask "What's the sentiment on BTC?" or "Set alert for JUP above $2".\n\n` +
-    `Refer friends:\n` +
-    `Earn $1.80 per referral (they get $1.20 off). Invite friends to join you — stack referrals and put it toward your next month's subscription.\n` +
-    (referralLink ? `${referralLink}\n\n` : "\n") +
-    `Commands: /status · /subscribe · /alerts · /referral · /help`
-  );
+  let text =
+    `Welcome back, ${displayName}! 🦞\n\n` +
+    `Your AI trading assistant is ready. Ask anything or tap the buttons below.`;
+
+  if (tier === "trial") {
+    text += `\n\n⏳ You're on a free trial. /subscribe to keep full access.`;
+  }
+
+  if (referralLink) {
+    text += `\n\n💰 Share & earn: ${referralLink}`;
+  }
+
+  return text;
 }
 
 // ──────────────────────────────────────────────
@@ -65,7 +88,11 @@ export async function handleStart(
   if (result.status === "existing") {
     const user = await db.getUser(telegramId);
     if (!user) return "Something went wrong. Please try again.";
-    return getStatusMessage(user);
+    return getReturningWelcomeMessage(
+      displayName ?? username ?? "trader",
+      user.referral_code ?? "",
+      user.tier,
+    );
   }
 
   return getWelcomeMessage(

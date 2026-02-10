@@ -61,6 +61,8 @@ export const createTelegramMessageProcessor = (deps: TelegramMessageProcessorDep
       skillFilterOverride?: string[];
       /** When true (OpenJoey admin), do not filter skills — load all. */
       skillFilterAllowAll?: boolean;
+      /** OpenJoey: user context note (favorites, watchlist) prepended for AI awareness. */
+      userContext?: string;
     },
   ) => {
     const context = await buildTelegramMessageContext({

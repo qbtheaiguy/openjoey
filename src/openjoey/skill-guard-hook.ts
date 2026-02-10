@@ -13,6 +13,7 @@ import type {
 } from "../plugins/types.js";
 import { resolveSession } from "./session-isolation.js";
 import { guardSkillExecution, logSkillExecution, SKILL_METADATA } from "./skill-guard.js";
+import { getOpenJoeyDB } from "./supabase-client.js";
 
 /**
  * Extracts the skill name from a file path if it's a SKILL.md file.
@@ -139,6 +140,16 @@ export async function afterToolCall(
     0, // Token count not easily available from tool call
     error,
   );
+
+  // Increment personal skill use counter (drives "Favorite this skill?" prompt)
+  if (!error) {
+    try {
+      const db = getOpenJoeyDB();
+      await db.incrementSkillUse(session.userId, skillName);
+    } catch (err) {
+      console.error("[skill-guard] Failed to increment skill use:", err);
+    }
+  }
 }
 
 /**

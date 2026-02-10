@@ -74,6 +74,8 @@ type TelegramMessageContextOptions = {
   skillFilterOverride?: string[];
   /** OpenJoey: when true (admin), load all skills (no filter). */
   skillFilterAllowAll?: boolean;
+  /** OpenJoey: user context note (favorites, watchlist) prepended for AI awareness. */
+  userContext?: string;
 };
 
 type TelegramLogger = {
@@ -578,6 +580,8 @@ export const buildTelegramMessageContext = async ({
   const systemPromptParts = [
     groupConfig?.systemPrompt?.trim() || null,
     topicConfig?.systemPrompt?.trim() || null,
+    // OpenJoey: inject user preferences (favorites, watchlist) for AI awareness
+    options?.userContext?.trim() || null,
   ].filter((entry): entry is string => Boolean(entry));
   const groupSystemPrompt =
     systemPromptParts.length > 0 ? systemPromptParts.join("\n\n") : undefined;
