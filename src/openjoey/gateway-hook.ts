@@ -12,6 +12,12 @@
  * The gateway calls these hooks at specific points in the message lifecycle.
  */
 
+import {
+  clearPending,
+  getPendingAnnounce,
+  setPendingPreview,
+  setPendingWaiting,
+} from "./broadcast-state.js";
 import { getCachedReply, setCachedReply } from "./cache/reply-cache.js";
 import { FAVORITES_CAP } from "./constants.js";
 import { buildStartKeyboard } from "./keyboard-builder.js";
@@ -28,6 +34,7 @@ import {
   handleSubscribe,
   handleReferral,
   handleCancel,
+  handleStop,
   getHelpMessage,
 } from "./onboarding.js";
 import {
@@ -79,6 +86,8 @@ export interface HookResult {
   responseSuffix?: string;
   /** Optional user context note injected before the user's message for AI awareness. */
   userContext?: string;
+  /** When set, bot should run admin broadcast with this message (admin-only). */
+  broadcast?: { text: string };
 }
 
 // ──────────────────────────────────────────────
@@ -96,6 +105,9 @@ const SLASH_COMMANDS = new Set([
   "/upgrade",
   "/skills",
   "/favorites",
+  "/broadcast",
+  "/announce",
+  "/stop",
 ]);
 
 function isSlashCommand(text: string): boolean {
@@ -410,6 +422,9 @@ async function handleSlashCommand(msg: IncomingTelegramMessage): Promise<string 
     case "/cancel":
       return handleCancel(msg.telegramId);
 
+    case "/stop":
+      return handleStop(msg.telegramId);
+
     case "/help": {
       const session = await resolveSession(
         msg.telegramId,
@@ -445,11 +460,124 @@ async function handleSlashCommand(msg: IncomingTelegramMessage): Promise<string 
 export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<HookResult> {
   const sessionKey = deriveSessionKey(msg.telegramId);
 
+  // 0. /announce follow-up: admin sent /announce, next message is the broadcast text → show preview
+  if (!isSlashCommand(msg.text) && msg.text.trim()) {
+    const pending = getPendingAnnounce(msg.telegramId);
+    if (pending?.step === "waiting") {
+      const session = await resolveSession(
+        msg.telegramId,
+        msg.telegramUsername,
+        msg.telegramChatId,
+      );
+      if (session.role === "admin") {
+        const text = msg.text.trim();
+        setPendingPreview(msg.telegramId, text);
+        const preview = `\u{1F4E2} *Preview:*\n\n${text}`;
+        const replyMarkup: HookResult["replyMarkup"] = [
+          [
+            { text: "\u2705 Yes, Send", callback_data: "announce:confirm" },
+            { text: "\u274C Cancel", callback_data: "announce:cancel" },
+          ],
+        ];
+        return {
+          directReply: preview,
+          replyMarkup,
+          sessionKey,
+          tier: session.tier,
+          allowedSkills: getAllowedSkillsForRole(session.role),
+          allowAllSkills: true,
+          permissions: getTierPermissions(session.tier),
+          userId: session.userId,
+          shouldProcess: false,
+        };
+      }
+      clearPending(msg.telegramId);
+    }
+  }
+
   // 1. Handle slash commands
   if (isSlashCommand(msg.text)) {
     const cmd = msg.text.trim().split(" ")[0].toLowerCase();
 
-    // 1a. /skills and /favorites: produce directReply + replyMarkup together
+    // 1a. /broadcast — admin-only: trigger broadcast to all users
+    if (cmd === "/broadcast") {
+      const session = await resolveSession(
+        msg.telegramId,
+        msg.telegramUsername,
+        msg.telegramChatId,
+      );
+      if (session.role !== "admin") {
+        return {
+          directReply: "\u274C Admin only.",
+          sessionKey,
+          tier: session.tier,
+          allowedSkills: getAllowedSkillsForRole(session.role),
+          allowAllSkills: false,
+          permissions: getTierPermissions(session.tier),
+          userId: session.userId,
+          shouldProcess: false,
+        };
+      }
+      const text = msg.text.replace(/^\/broadcast\s*/i, "").trim();
+      if (!text) {
+        return {
+          directReply:
+            "Usage: /broadcast _your message_\n\nExample: /broadcast Hey everyone, thanks for the feedback!",
+          sessionKey,
+          tier: session.tier,
+          allowedSkills: getAllowedSkillsForRole(session.role),
+          allowAllSkills: true,
+          permissions: getTierPermissions(session.tier),
+          userId: session.userId,
+          shouldProcess: false,
+        };
+      }
+      return {
+        directReply: "\u{1F4E2} Starting broadcast\u2026 You'll get a summary when done.",
+        broadcast: { text },
+        sessionKey,
+        tier: session.tier,
+        allowedSkills: getAllowedSkillsForRole(session.role),
+        allowAllSkills: true,
+        permissions: getTierPermissions(session.tier),
+        userId: session.userId,
+        shouldProcess: false,
+      };
+    }
+
+    // 1a2. /announce — admin-only: ask for message, then show preview + confirm (handled above on next message)
+    if (cmd === "/announce") {
+      const session = await resolveSession(
+        msg.telegramId,
+        msg.telegramUsername,
+        msg.telegramChatId,
+      );
+      if (session.role !== "admin") {
+        return {
+          directReply: "\u274C Admin only.",
+          sessionKey,
+          tier: session.tier,
+          allowedSkills: getAllowedSkillsForRole(session.role),
+          allowAllSkills: false,
+          permissions: getTierPermissions(session.tier),
+          userId: session.userId,
+          shouldProcess: false,
+        };
+      }
+      setPendingWaiting(msg.telegramId);
+      return {
+        directReply: "\u{1F4E2} Send me the announcement message:",
+        sessionKey,
+        tier: session.tier,
+        allowedSkills: getAllowedSkillsForRole(session.role),
+        allowAllSkills: true,
+        permissions: getTierPermissions(session.tier),
+        userId: session.userId,
+        shouldProcess: false,
+      };
+    }
+
+    // 1b. /skills and /favorites: produce directReply + replyMarkup together
     if (cmd === "/skills" || cmd === "/favorites") {
       const session = await resolveSession(
         msg.telegramId,

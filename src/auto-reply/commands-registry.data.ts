@@ -173,6 +173,14 @@ function buildChatCommands(): ChatCommandDefinition[] {
       category: "status",
     }),
     defineChatCommand({
+      key: "broadcast",
+      nativeName: "broadcast",
+      description: "Send announcement to all users (admin).",
+      textAlias: "/broadcast",
+      acceptsArgs: true,
+      category: "management",
+    }),
+    defineChatCommand({
       key: "allowlist",
       description: "List/add/remove allowlist entries.",
       textAlias: "/allowlist",

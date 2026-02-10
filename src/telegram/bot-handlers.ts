@@ -17,7 +17,10 @@ import { loadConfig } from "../config/config.js";
 import { writeConfigFile } from "../config/io.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import { danger, logVerbose, warn } from "../globals.js";
+import { consumePendingForSend, clearPending } from "../openjoey/broadcast-state.js";
+import { runBroadcast } from "../openjoey/broadcast.js";
 import { handleOpenJoeyCallback, isOpenJoeyCallback } from "../openjoey/callback-handler.js";
+import { isAdmin } from "../openjoey/session-isolation.js";
 import { getOpenJoeyDB } from "../openjoey/supabase-client.js";
 import { readChannelAllowFromStore } from "../pairing/pairing-store.js";
 import { resolveAgentRoute } from "../routing/resolve-route.js";
@@ -292,6 +295,35 @@ export const registerTelegramHandlers = ({
       if (!data || !callbackMessage) {
         // Still answer empty callback to prevent Telegram retry
         await bot.api.answerCallbackQuery(callback.id).catch(() => {});
+        return;
+      }
+
+      // OpenJoey /announce confirm or cancel (admin-only)
+      const announceTelegramId = callback.from?.id;
+      const announceChatId = callbackMessage.chat.id;
+      if (
+        (data === "announce:confirm" || data === "announce:cancel") &&
+        announceTelegramId != null
+      ) {
+        if (!isAdmin(announceTelegramId)) {
+          await bot.api.answerCallbackQuery(callback.id, { text: "Admin only." }).catch(() => {});
+          return;
+        }
+        if (data === "announce:cancel") {
+          clearPending(announceTelegramId);
+          await bot.api.answerCallbackQuery(callback.id, { text: "Cancelled." }).catch(() => {});
+          return;
+        }
+        const text = consumePendingForSend(announceTelegramId);
+        await bot.api.answerCallbackQuery(callback.id, { text: "Sending…" }).catch(() => {});
+        if (text) {
+          runBroadcast(bot, text, announceChatId).catch((err) => {
+            runtime.error?.(danger(`OpenJoey broadcast failed: ${String(err)}`));
+            bot.api
+              .sendMessage(announceChatId, `\u274C Broadcast error: ${String(err)}`)
+              .catch(() => {});
+          });
+        }
         return;
       }
 

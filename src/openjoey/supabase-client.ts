@@ -30,6 +30,8 @@ export interface OpenJoeyUser {
   charts_reset_at: string | null;
   created_at: string;
   updated_at: string;
+  /** When true, user has unsubscribed from admin broadcasts (/stop). */
+  broadcast_opt_out?: boolean;
 }
 
 export interface TierAccessResult {
@@ -209,6 +211,22 @@ export class OpenJoeyDB {
   async getUserById(userId: string): Promise<OpenJoeyUser | null> {
     const rows = await this.get<OpenJoeyUser>("users", `id=eq.${userId}&limit=1`);
     return rows[0] ?? null;
+  }
+
+  /** All telegram_id values for broadcast (admin-only). Excludes users who opted out via /stop. */
+  async getAllTelegramIdsForBroadcast(): Promise<number[]> {
+    const rows = await this.get<{ telegram_id: number }>(
+      "users",
+      "select=telegram_id&broadcast_opt_out=eq.false",
+    );
+    return rows.map((r) => Number(r.telegram_id));
+  }
+
+  /** Set broadcast opt-out (true = unsubscribed, false = subscribed). */
+  async setBroadcastOptOut(telegramId: number, optOut: boolean): Promise<void> {
+    await this.update("users", `telegram_id=eq.${telegramId}`, {
+      broadcast_opt_out: optOut,
+    });
   }
 
   async checkTierAccess(

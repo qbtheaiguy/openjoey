@@ -78,6 +78,9 @@ export async function handleStart(
   const db = getOpenJoeyDB();
   const result = await db.registerUser(telegramId, username, displayName, referralCode);
 
+  // Resubscribe to announcements when user taps /start
+  await db.setBroadcastOptOut(telegramId, false).catch(() => {});
+
   // If new user and was referred, attribute the referral
   if (result.status === "created" && referralCode) {
     await attributeReferral(result.user_id, referralCode).catch((err) => {
@@ -299,4 +302,14 @@ export async function handleCancel(telegramId: number): Promise<string> {
     `To proceed, visit your billing portal or contact support.\n` +
     `We're sorry to see you go! 🦞`
   );
+}
+
+// ──────────────────────────────────────────────
+// /stop — unsubscribe from admin broadcast announcements
+// ──────────────────────────────────────────────
+
+export async function handleStop(telegramId: number): Promise<string> {
+  const db = getOpenJoeyDB();
+  await db.setBroadcastOptOut(telegramId, true).catch(() => {});
+  return "🔕 You've unsubscribed from announcements.\n\n" + "Use /start to resubscribe.";
 }

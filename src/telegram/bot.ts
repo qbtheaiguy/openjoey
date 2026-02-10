@@ -26,6 +26,7 @@ import { formatUncaughtError } from "../infra/errors.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
 import { getChildLogger } from "../logging.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
+import { runBroadcast } from "../openjoey/broadcast.js";
 import { onTelegramMessage } from "../openjoey/gateway-hook.js";
 import { getOpenJoeyDB } from "../openjoey/supabase-client.js";
 import { extractTokenSymbol } from "../openjoey/token-extract.js";
@@ -417,6 +418,12 @@ export function createTelegramBot(opts: TelegramBotOptions) {
             ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
           }),
         );
+        if (hookResult.broadcast) {
+          runBroadcast(bot, hookResult.broadcast.text, chatId).catch((err) => {
+            runtime.error?.(danger(`OpenJoey broadcast failed: ${String(err)}`));
+            bot.api.sendMessage(chatId, `\u274C Broadcast error: ${String(err)}`).catch(() => {});
+          });
+        }
         return;
       }
       if (hookResult.cachedReply) {
