@@ -94,8 +94,8 @@ export function getStatusMessage(user: UserLike): string {
     annual: "🗓️",
   };
 
-  let msg = `${tierEmoji[user.tier] ?? "📊"} *OpenJoey Status*\n\n`;
-  msg += `Tier: *${user.tier.charAt(0).toUpperCase() + user.tier.slice(1)}*\n`;
+  let msg = `${tierEmoji[user.tier] ?? "📊"} OpenJoey Status\n\n`;
+  msg += `Tier: ${user.tier.charAt(0).toUpperCase() + user.tier.slice(1)}\n`;
   msg += `Status: ${user.status}\n`;
 
   if (user.tier === "trial" && user.trial_ends_at) {
@@ -218,16 +218,10 @@ export function getHelpMessage(tier: string): string {
   msg += `• Send any token symbol for analysis (e.g. "SOL", "BONK")\n`;
   msg += `• "Analyze [token]" — Full signal fusion report\n`;
   msg += `• "Deep dive [token]" — Trading god research\n`;
-
-  if (skills.includes("alert-guru")) {
-    msg += `• "Alert me when [token] hits $X" — Set price alert\n`;
-    msg += `• /alerts — View your active alerts\n`;
-  }
-
-  if (skills.includes("whale-guru")) {
-    msg += `• "Track wallet [address]" — Watch a whale wallet\n`;
-    msg += `• "Check whales" — See whale activity\n`;
-  }
+  msg += `• "Alert me when [token] hits $X" — Set price alert\n`;
+  msg += `• /alerts — View your active alerts\n`;
+  msg += `• "Track wallet [address]" — Watch a whale wallet\n`;
+  msg += `• "Check whales" — See whale activity\n`;
 
   msg += `\n*Account Commands:*\n`;
   msg += `/start — Create account / restart\n`;
@@ -241,7 +235,7 @@ export function getHelpMessage(tier: string): string {
   msg += `*Available skills:* ${skills.join(", ")}\n`;
 
   if (tier === "free") {
-    msg += `\n💡 Upgrade to unlock alerts, whale tracking, and unlimited analysis → /subscribe`;
+    msg += `\n💡 Upgrade for higher limits and more → /subscribe`;
   }
 
   return msg;

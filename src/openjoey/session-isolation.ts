@@ -27,73 +27,38 @@ export function deriveSessionKey(telegramId: number): string {
 }
 
 /**
- * Determine which skills a user has access to based on their tier.
+ * Determine which skills a user has access to.
  *
- * Guru Skills Hierarchy:
- * - Free/Trial: Basic analysis skills
- * - Trader/Annual: Multi-asset + alerts + whale tracking
- * - Premium: Everything + options + advanced features
+ * Tier-based filtering is disabled: all users get the full OpenJoey skill set.
+ * (All users are paying; custom/premium skills can be reintroduced later via tier or flags.)
  */
-export function getAllowedSkills(tier: string): string[] {
-  // Core analysis skills - available to most tiers except Free
-  const CORE_SKILLS = [
-    "edy", // Personalized skill for Edy (GBP/USD, Gold, DJ30, GER40, NSDQ100) 💕
-    "signal-guru", // Master multi-asset analyzer
-    "research-guru", // Deep research system
-    "crypto-guru", // Crypto-specific deep dives
-    "meme-guru", // Meme coin degen intelligence
-  ];
-
-  // Professional trading skills - available to trial and subscribers
+export function getAllowedSkills(_tier: string): string[] {
+  // Full OpenJoey skill set — same for every tier
+  const CORE_SKILLS = ["edy", "signal-guru", "research-guru", "crypto-guru", "meme-guru"];
   const TRADING_SKILLS = [
-    "stock-guru", // Stocks & ETFs
-    "forex-guru", // Currency pairs
-    "commodity-guru", // Gold, oil, etc.
-    "sentiment-tracker", // NEW: Social sentiment
-    "dex-scanner", // NEW: DEX discovery
-    "insider-tracker", // NEW: SEC/Whale tracking
-    "penny-stock-scanner", // NEW: Micro-cap breaks
-    "market-scanner", // NEW: Global filtering
-    "news-alerts", // NEW: Breaking news
-    "economic-calendar", // NEW: Macro events
+    "stock-guru",
+    "forex-guru",
+    "commodity-guru",
+    "sentiment-tracker",
+    "dex-scanner",
+    "insider-tracker",
+    "penny-stock-scanner",
+    "market-scanner",
+    "news-alerts",
+    "economic-calendar",
   ];
-
-  // Subscriber-only skills - trader, annual, premium
   const SUBSCRIBER_SKILLS = [
-    "whale-guru", // Whale tracking & smart money
-    "alert-guru", // Price alerts (background monitoring)
-    "unusual-options", // NEW: Block trades/sweeps
-    "central-bank-watch", // NEW: Fed/ECB policy
-    "correlation-tracker", // NEW: Cross-asset links
-    "futures-analyzer", // NEW: OI/Funding/Liqs
-    "cot-analyzer", // NEW: Institutional positions
+    "whale-guru",
+    "alert-guru",
+    "unusual-options",
+    "central-bank-watch",
+    "correlation-tracker",
+    "futures-analyzer",
+    "cot-analyzer",
   ];
+  const PREMIUM_SKILLS = ["options-guru", "options-strategy", "trading-god-pro"];
 
-  // Premium-only skills
-  const PREMIUM_SKILLS = [
-    "options-guru", // Options chain analysis & Greeks
-    "options-strategy", // NEW: Multi-leg builder
-    "trading-god-pro", // NEW: Institutional research
-    "api-access", // Direct API access
-  ];
-
-  switch (tier) {
-    case "trial":
-      // Trial gets absolute access to trading skills + alerts
-      return [...CORE_SKILLS, ...TRADING_SKILLS, "alert-guru"];
-    case "free":
-      // Free tier gets minimal skills
-      return CORE_SKILLS;
-    case "trader":
-    case "annual":
-      // Full subscriber access except premium specific
-      return [...CORE_SKILLS, ...TRADING_SKILLS, ...SUBSCRIBER_SKILLS];
-    case "premium":
-      // Everything unlocked
-      return [...CORE_SKILLS, ...TRADING_SKILLS, ...SUBSCRIBER_SKILLS, ...PREMIUM_SKILLS];
-    default:
-      return CORE_SKILLS;
-  }
+  return [...CORE_SKILLS, ...TRADING_SKILLS, ...SUBSCRIBER_SKILLS, ...PREMIUM_SKILLS];
 }
 
 /**
