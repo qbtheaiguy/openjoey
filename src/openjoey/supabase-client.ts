@@ -80,6 +80,35 @@ export interface WhaleWatch {
   created_at: string;
 }
 
+// --------------- Watchlist, Favorites, Skill Use (UI/UX automation) ---------------
+
+export interface WatchlistItem {
+  id: string;
+  user_id: string;
+  symbol: string;
+  symbol_type: "crypto_token" | "stock" | "penny_stock";
+  added_at: string;
+}
+
+export interface FavoriteSkill {
+  id: string;
+  user_id: string;
+  skill_name: string;
+  category: string | null;
+  added_at: string;
+  usage_count: number;
+  last_used: string | null;
+  settings: Record<string, unknown> | null;
+}
+
+export interface SkillUse {
+  id: string;
+  user_id: string;
+  skill_name: string;
+  use_count: number;
+  last_used: string;
+}
+
 /**
  * Lightweight Supabase client that uses fetch directly (no SDK dependency).
  * The gateway runs in Node; this avoids adding @supabase/supabase-js to the core.
@@ -133,6 +162,14 @@ export class OpenJoeyDB {
     return res.json();
   }
 
+  public async delete(table: string, query: string): Promise<void> {
+    const res = await fetch(`${this.url}/rest/v1/${table}?${query}`, {
+      method: "DELETE",
+      headers: this.headers,
+    });
+    if (!res.ok) throw new Error(`Supabase DELETE ${table}: ${res.status} ${await res.text()}`);
+  }
+
   private async rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
     const res = await fetch(`${this.url}/rest/v1/rpc/${fn}`, {
       method: "POST",
@@ -166,6 +203,11 @@ export class OpenJoeyDB {
 
   async getUserByReferralCode(code: string): Promise<OpenJoeyUser | null> {
     const rows = await this.get<OpenJoeyUser>("users", `referral_code=eq.${code}&limit=1`);
+    return rows[0] ?? null;
+  }
+
+  async getUserById(userId: string): Promise<OpenJoeyUser | null> {
+    const rows = await this.get<OpenJoeyUser>("users", `id=eq.${userId}&limit=1`);
     return rows[0] ?? null;
   }
 
@@ -340,6 +382,23 @@ export class OpenJoeyDB {
     await this.update("referrals", `referred_id=eq.${referredId}`, updates);
   }
 
+  // --------------- Referral milestones (§9.9) ---------------
+
+  async getMilestoneSends(userId: string): Promise<string[]> {
+    const rows = await this.get<{ milestone: string }>(
+      "user_referral_milestones",
+      `user_id=eq.${userId}`,
+    );
+    return rows.map((r) => r.milestone);
+  }
+
+  async recordMilestoneSent(userId: string, milestone: string): Promise<void> {
+    await this.insert("user_referral_milestones", {
+      user_id: userId,
+      milestone,
+    });
+  }
+
   // --------------- Quotas & Usage ---------------
 
   async getUserQuota(userId: string): Promise<{
@@ -424,6 +483,141 @@ export class OpenJoeyDB {
   } | null> {
     const rows = await this.get<any>("skill_catalog", `id=eq.${skillId}&limit=1`);
     return rows[0] ?? null;
+  }
+
+  /** For skill detail view: display name, description, category. */
+  async getSkillForDetail(skillId: string): Promise<{
+    display_name: string;
+    description: string | null;
+    category: string | null;
+  } | null> {
+    const rows = await this.get<any>(
+      "skill_catalog",
+      `id=eq.${encodeURIComponent(skillId)}&limit=1`,
+    );
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      display_name: row.display_name ?? skillId,
+      description: row.description ?? null,
+      category: row.category ?? null,
+    };
+  }
+
+  // --------------- Watchlist (UI/UX automation) ---------------
+
+  async getUserWatchlist(userId: string): Promise<WatchlistItem[]> {
+    return this.get<WatchlistItem>("user_watchlist", `user_id=eq.${userId}&order=added_at.desc`);
+  }
+
+  async getWatchlistCount(userId: string): Promise<number> {
+    const items = await this.get<{ id: string }>(
+      "user_watchlist",
+      `user_id=eq.${userId}&select=id`,
+    );
+    return items.length;
+  }
+
+  async addToWatchlist(
+    userId: string,
+    symbol: string,
+    symbolType: "crypto_token" | "stock" | "penny_stock" = "crypto_token",
+  ): Promise<WatchlistItem> {
+    return this.insert<WatchlistItem>("user_watchlist", {
+      user_id: userId,
+      symbol: symbol.toUpperCase(),
+      symbol_type: symbolType,
+    });
+  }
+
+  async removeFromWatchlist(userId: string, symbol: string): Promise<void> {
+    await this.delete(
+      "user_watchlist",
+      `user_id=eq.${userId}&symbol=eq.${encodeURIComponent(symbol.toUpperCase())}`,
+    );
+  }
+
+  async isInWatchlist(userId: string, symbol: string): Promise<boolean> {
+    const rows = await this.get<{ id: string }>(
+      "user_watchlist",
+      `user_id=eq.${userId}&symbol=eq.${encodeURIComponent(symbol.toUpperCase())}&select=id&limit=1`,
+    );
+    return rows.length > 0;
+  }
+
+  // --------------- Favorite Skills (UI/UX automation) ---------------
+
+  async getUserFavorites(userId: string): Promise<FavoriteSkill[]> {
+    return this.get<FavoriteSkill>(
+      "user_favorite_skills",
+      `user_id=eq.${userId}&order=added_at.desc`,
+    );
+  }
+
+  async getFavoriteCount(userId: string): Promise<number> {
+    const items = await this.get<{ id: string }>(
+      "user_favorite_skills",
+      `user_id=eq.${userId}&select=id`,
+    );
+    return items.length;
+  }
+
+  async addFavorite(userId: string, skillName: string, category?: string): Promise<FavoriteSkill> {
+    return this.insert<FavoriteSkill>("user_favorite_skills", {
+      user_id: userId,
+      skill_name: skillName,
+      category: category ?? null,
+    });
+  }
+
+  async removeFavorite(userId: string, skillName: string): Promise<void> {
+    await this.delete(
+      "user_favorite_skills",
+      `user_id=eq.${userId}&skill_name=eq.${encodeURIComponent(skillName)}`,
+    );
+  }
+
+  async isFavorited(userId: string, skillName: string): Promise<boolean> {
+    const rows = await this.get<{ id: string }>(
+      "user_favorite_skills",
+      `user_id=eq.${userId}&skill_name=eq.${encodeURIComponent(skillName)}&select=id&limit=1`,
+    );
+    return rows.length > 0;
+  }
+
+  // --------------- Skill Use Tracking (UI/UX automation) ---------------
+
+  /** Increment use count for a skill; upsert if first use. Returns the new count. */
+  async incrementSkillUse(userId: string, skillName: string): Promise<number> {
+    const encoded = encodeURIComponent(skillName);
+    const rows = await this.get<SkillUse>(
+      "user_skill_use",
+      `user_id=eq.${userId}&skill_name=eq.${encoded}&limit=1`,
+    );
+    if (rows.length > 0) {
+      const newCount = rows[0].use_count + 1;
+      await this.update("user_skill_use", `user_id=eq.${userId}&skill_name=eq.${encoded}`, {
+        use_count: newCount,
+        last_used: new Date().toISOString(),
+      });
+      return newCount;
+    }
+    // First use: insert with count 1
+    await this.insert("user_skill_use", {
+      user_id: userId,
+      skill_name: skillName,
+      use_count: 1,
+      last_used: new Date().toISOString(),
+    });
+    return 1;
+  }
+
+  async getSkillUseCount(userId: string, skillName: string): Promise<number> {
+    const rows = await this.get<SkillUse>(
+      "user_skill_use",
+      `user_id=eq.${userId}&skill_name=eq.${encodeURIComponent(skillName)}&limit=1`,
+    );
+    return rows[0]?.use_count ?? 0;
   }
 
   // --------------- Checkout ---------------

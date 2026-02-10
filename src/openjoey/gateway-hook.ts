@@ -13,6 +13,9 @@
  */
 
 import { getCachedReply, setCachedReply } from "./cache/reply-cache.js";
+import { FAVORITES_CAP } from "./constants.js";
+import { buildStartKeyboard } from "./keyboard-builder.js";
+import { getUserLifecycleData } from "./lifecycle.js";
 import {
   getPostChartFomo,
   getBlockedActionMessage,
@@ -33,6 +36,7 @@ import {
   getTierPermissions,
   deriveSessionKey,
 } from "./session-isolation.js";
+import { buildSkillsOverview } from "./skill-browser.js";
 import { getOpenJoeyDB } from "./supabase-client.js";
 import { checkTierGate, postAnalysisHook } from "./tier-middleware.js";
 
@@ -55,6 +59,8 @@ export interface HookResult {
   directReply?: string;
   /** If set, reply with this cached reply and skip the agent (Phase 3 reply cache). */
   cachedReply?: string;
+  /** Inline keyboard to attach to directReply (2D array of { text, callback_data }). */
+  replyMarkup?: Array<Array<{ text: string; callback_data: string }>>;
   /** Session key for the OpenClaw agent. */
   sessionKey: string;
   /** User's tier. */
@@ -71,6 +77,8 @@ export interface HookResult {
   shouldProcess: boolean;
   /** Suffix to append to the agent's response. */
   responseSuffix?: string;
+  /** Optional user context note injected before the user's message for AI awareness. */
+  userContext?: string;
 }
 
 // ──────────────────────────────────────────────
@@ -86,6 +94,8 @@ const SLASH_COMMANDS = new Set([
   "/help",
   "/alerts",
   "/upgrade",
+  "/skills",
+  "/favorites",
 ]);
 
 function isSlashCommand(text: string): boolean {
@@ -135,6 +145,11 @@ async function handleSlashCommand(msg: IncomingTelegramMessage): Promise<string 
       return null; // Let the agent handle it via the alert-guru skill
     }
 
+    case "/skills":
+    case "/favorites":
+      // Handled in main hook with keyboard — return marker so we know it was a recognized command
+      return null;
+
     default:
       return null;
   }
@@ -153,6 +168,95 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
 
   // 1. Handle slash commands
   if (isSlashCommand(msg.text)) {
+    const cmd = msg.text.trim().split(" ")[0].toLowerCase();
+
+    // 1a. /skills and /favorites: produce directReply + replyMarkup together
+    if (cmd === "/skills" || cmd === "/favorites") {
+      const session = await resolveSession(
+        msg.telegramId,
+        msg.telegramUsername,
+        msg.telegramChatId,
+      );
+      try {
+        const db = getOpenJoeyDB();
+        const user = await db.getUser(msg.telegramId);
+        if (user) {
+          const favorites = await db.getUserFavorites(user.id).catch(() => []);
+          const favNames = favorites.map((f) => f.skill_name);
+
+          if (cmd === "/skills") {
+            const result = await buildSkillsOverview(favNames);
+            return {
+              directReply: result.text,
+              replyMarkup: result.keyboard,
+              sessionKey,
+              tier: session.tier,
+              allowedSkills: getAllowedSkillsForRole(session.role),
+              allowAllSkills: session.role === "admin",
+              permissions: getTierPermissions(session.tier),
+              userId: session.userId,
+              shouldProcess: false,
+            };
+          }
+          // /favorites
+          const favCap = FAVORITES_CAP;
+          if (favorites.length === 0) {
+            return {
+              directReply: `\u2B50 *Your Favorite Skills (0/${favCap})*\n\nNo favorites yet. Use skills and I'll suggest adding them!\n\nBrowse all: /skills`,
+              sessionKey,
+              tier: session.tier,
+              allowedSkills: getAllowedSkillsForRole(session.role),
+              allowAllSkills: session.role === "admin",
+              permissions: getTierPermissions(session.tier),
+              userId: session.userId,
+              shouldProcess: false,
+            };
+          }
+          let text = `\u2B50 *Your Favorite Skills (${favorites.length}/${favCap})*\n\n`;
+          for (const fav of favorites) {
+            text += `\u2022 ${fav.skill_name}${fav.category ? ` (${fav.category})` : ""}\n`;
+          }
+          text += "\nYour favorites help the AI understand what you care about.";
+          const keyboard = favorites.slice(0, 8).map((fav) => [
+            { text: `\u{1F680} ${fav.skill_name}`, callback_data: `s:use:${fav.skill_name}` },
+            { text: "\u{1F5D1}", callback_data: `s:unfav:${fav.skill_name}` },
+          ]);
+          keyboard.push([
+            { text: "\u{1F4DA} Browse All", callback_data: "m:skills" },
+            { text: "\u{1F519} Back", callback_data: "m:main" },
+          ]);
+          return {
+            directReply: text,
+            replyMarkup: keyboard,
+            sessionKey,
+            tier: session.tier,
+            allowedSkills: getAllowedSkillsForRole(session.role),
+            allowAllSkills: session.role === "admin",
+            permissions: getTierPermissions(session.tier),
+            userId: session.userId,
+            shouldProcess: false,
+          };
+        }
+      } catch (err) {
+        console.error(`[openjoey] ${cmd} failed:`, err);
+      }
+      // Fallback if user not found
+      return {
+        directReply:
+          cmd === "/skills"
+            ? "Send /start first to set up your account."
+            : "Send /start first to set up your account.",
+        sessionKey,
+        tier: session.tier,
+        allowedSkills: getAllowedSkillsForRole(session.role),
+        allowAllSkills: session.role === "admin",
+        permissions: getTierPermissions(session.tier),
+        userId: session.userId,
+        shouldProcess: false,
+      };
+    }
+
+    // 1b. Other slash commands (text-only reply + optional keyboard for /start)
     const reply = await handleSlashCommand(msg);
     if (reply) {
       // Resolve session anyway (for tracking)
@@ -161,8 +265,43 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
         msg.telegramUsername,
         msg.telegramChatId,
       );
+
+      // For /start: build data-driven keyboard from lifecycle
+      let replyMarkup: HookResult["replyMarkup"] | undefined;
+      if (cmd === "/start") {
+        try {
+          const db = getOpenJoeyDB();
+          const user = await db.getUser(msg.telegramId);
+          if (user) {
+            const lifecycle = await getUserLifecycleData(db, user);
+            // Only load extra data for non-day1 users (avoid unnecessary DB calls)
+            const referralStats =
+              lifecycle.stage !== "day1"
+                ? await db.getReferralStats(user.id).catch(() => null)
+                : null;
+            const watchlistItems =
+              lifecycle.stage !== "day1" ? await db.getUserWatchlist(user.id).catch(() => []) : [];
+            const favoriteItems =
+              lifecycle.stage !== "day1" ? await db.getUserFavorites(user.id).catch(() => []) : [];
+
+            replyMarkup = buildStartKeyboard({
+              stage: lifecycle.stage,
+              referralStats,
+              referralCode: user.referral_code,
+              watchlistSymbols: watchlistItems.map((w) => w.symbol).slice(0, 5),
+              favoriteSkills: favoriteItems.map((f) => f.skill_name).slice(0, 5),
+              userAge24h: lifecycle.isOver24h,
+            });
+          }
+        } catch (err) {
+          // Non-fatal: keyboard fails → send text without buttons
+          console.error("[openjoey] keyboard build failed:", err);
+        }
+      }
+
       return {
         directReply: reply,
+        replyMarkup,
         sessionKey,
         tier: session.tier,
         allowedSkills: getAllowedSkillsForRole(session.role),
@@ -237,15 +376,57 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
     };
   }
 
+  // 6. AI integration (§6 of UI/UX doc):
+  //    - Reorder skills so user favorites come first in the tool list.
+  //    - Build a short userContext note with favorites + watchlist for AI awareness.
+  let allowedSkills = getAllowedSkillsForRole(session.role);
+  let userContext: string | undefined;
+  try {
+    const db = getOpenJoeyDB();
+    const [favorites, watchlist] = await Promise.all([
+      db.getUserFavorites(session.userId).catch(() => []),
+      db.getUserWatchlist(session.userId).catch(() => []),
+    ]);
+
+    // Reorder: favorites first, rest in original order
+    if (favorites.length > 0 && allowedSkills && session.role !== "admin") {
+      const favNames = favorites.map((f) => f.skill_name);
+      const favSet = new Set(favNames);
+      allowedSkills = [
+        ...favNames.filter((f) => allowedSkills!.includes(f)),
+        ...allowedSkills.filter((s) => !favSet.has(s)),
+      ];
+    }
+
+    // Build user context note for the agent
+    const contextParts: string[] = [];
+    if (favorites.length > 0) {
+      contextParts.push(
+        `User's preferred skills: ${favorites.map((f) => f.skill_name).join(", ")}. Prioritize these when relevant.`,
+      );
+    }
+    if (watchlist.length > 0) {
+      contextParts.push(
+        `User's watchlist: ${watchlist.map((w) => w.symbol).join(", ")}. They track these symbols regularly.`,
+      );
+    }
+    if (contextParts.length > 0) {
+      userContext = `[User preferences] ${contextParts.join(" ")}`;
+    }
+  } catch {
+    // Non-fatal: favorites reorder fails → use default order
+  }
+
   return {
     sessionKey,
     tier: session.tier,
-    allowedSkills: getAllowedSkillsForRole(session.role),
+    allowedSkills,
     allowAllSkills: session.role === "admin",
     permissions: getTierPermissions(session.tier),
     userId: session.userId,
     shouldProcess: true,
     responseSuffix,
+    userContext,
   };
 }
 

@@ -51,28 +51,26 @@ export async function attributeReferral(
 /**
  * Processes a successful subscription and rewards the referrer.
  * Called when a user's status changes to 'active' (e.g. via Stripe webhook).
+ * Returns the referrer's user_id if a referral was paid, so the caller can
+ * call checkAndSendReferralMilestones(referrerId, sendMessage) for §9.9 nudge.
  */
-export async function rewardReferral(referredUserId: string): Promise<void> {
+export async function rewardReferral(referredUserId: string): Promise<string | null> {
   const db = getOpenJoeyDB();
 
   try {
-    // 1. Check if this user was referred
-    const referrals = await db.get<any>(
+    const referrals = await db.get<{ referrer_id: string }>(
       "referrals",
       `referred_id=eq.${referredUserId}&status=eq.pending&limit=1`,
     );
-    if (referrals.length === 0) return;
+    if (referrals.length === 0) return null;
 
     const referral = referrals[0];
-
-    // 2. Update referral status to 'paid'
     await db.updateReferralStatus(referredUserId, "paid");
 
-    // 3. Add credits to the referrer (In a real system, this might go to a 'balance' or 'credits' table)
-    // For now, we've logged it in the referrals table which is used for the leaderboard.
-
     console.log(`[referral] Successfully rewarded referral for user ${referredUserId}`);
+    return referral.referrer_id;
   } catch (err) {
     console.error(`[referral] Failed to reward referral:`, err);
+    return null;
   }
 }

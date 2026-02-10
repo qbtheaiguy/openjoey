@@ -17,6 +17,8 @@ import { loadConfig } from "../config/config.js";
 import { writeConfigFile } from "../config/io.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import { danger, logVerbose, warn } from "../globals.js";
+import { handleOpenJoeyCallback, isOpenJoeyCallback } from "../openjoey/callback-handler.js";
+import { getOpenJoeyDB } from "../openjoey/supabase-client.js";
 import { readChannelAllowFromStore } from "../pairing/pairing-store.js";
 import { resolveAgentRoute } from "../routing/resolve-route.js";
 import { resolveThreadSessionKeys } from "../routing/session-key.js";
@@ -284,17 +286,24 @@ export const registerTelegramHandlers = ({
     if (shouldSkipUpdate(ctx)) {
       return;
     }
-    // Answer immediately to prevent Telegram from retrying while we process
-    await withTelegramApiErrorLogging({
-      operation: "answerCallbackQuery",
-      runtime,
-      fn: () => bot.api.answerCallbackQuery(callback.id),
-    }).catch(() => {});
     try {
       const data = (callback.data ?? "").trim();
       const callbackMessage = callback.message;
       if (!data || !callbackMessage) {
+        // Still answer empty callback to prevent Telegram retry
+        await bot.api.answerCallbackQuery(callback.id).catch(() => {});
         return;
+      }
+
+      // Defer generic answerCallbackQuery — OpenJoey callbacks answer themselves
+      // with toast text; non-OpenJoey callbacks get the generic answer below.
+      const isOJ = isOpenJoeyCallback(data);
+      if (!isOJ) {
+        await withTelegramApiErrorLogging({
+          operation: "answerCallbackQuery",
+          runtime,
+          fn: () => bot.api.answerCallbackQuery(callback.id),
+        }).catch(() => {});
       }
 
       const inlineButtonsScope = resolveTelegramInlineButtonsScope({
@@ -437,6 +446,88 @@ export const registerTelegramHandlers = ({
             return;
           }
         }
+      }
+
+      // ── OpenJoey callback routing (before pagination/model handlers) ──
+      if (isOJ) {
+        const telegramId = callback.from?.id;
+        if (telegramId) {
+          try {
+            const ojDb = getOpenJoeyDB();
+            const ojUser = await ojDb.getUser(telegramId);
+            if (ojUser) {
+              const ojResult = await handleOpenJoeyCallback(data, ojUser.id, telegramId);
+              if (ojResult) {
+                // Answer callback with toast text, or empty to stop loading spinner
+                await bot.api
+                  .answerCallbackQuery(callback.id, {
+                    ...(ojResult.answerText ? { text: ojResult.answerText } : {}),
+                  })
+                  .catch(() => {});
+                // Edit original message if editText is set (§9.2 breadcrumb)
+                if (ojResult.editText) {
+                  const editText = ojResult.breadcrumb
+                    ? `${ojResult.breadcrumb}\n\n${ojResult.editText}`
+                    : ojResult.editText;
+                  const editKeyboard = ojResult.editMarkup
+                    ? buildInlineKeyboard(ojResult.editMarkup)
+                    : undefined;
+                  try {
+                    await bot.api.editMessageText(
+                      callbackMessage.chat.id,
+                      callbackMessage.message_id,
+                      editText,
+                      {
+                        parse_mode: "Markdown",
+                        ...(editKeyboard ? { reply_markup: editKeyboard } : {}),
+                      },
+                    );
+                  } catch (editErr) {
+                    const errStr = String(editErr);
+                    if (!errStr.includes("message is not modified")) {
+                      // Retry without Markdown if parse fails
+                      await bot.api
+                        .editMessageText(
+                          callbackMessage.chat.id,
+                          callbackMessage.message_id,
+                          editText,
+                          editKeyboard ? { reply_markup: editKeyboard } : undefined,
+                        )
+                        .catch(() => {});
+                    }
+                  }
+                }
+                // Send new message if sendText is set
+                if (ojResult.sendText) {
+                  const sendKeyboard = ojResult.sendMarkup
+                    ? buildInlineKeyboard(ojResult.sendMarkup)
+                    : undefined;
+                  await withTelegramApiErrorLogging({
+                    operation: "sendMessage (OpenJoey callback)",
+                    runtime,
+                    fn: () =>
+                      bot.api.sendMessage(callbackMessage.chat.id, ojResult.sendText!, {
+                        ...(sendKeyboard ? { reply_markup: sendKeyboard } : {}),
+                      }),
+                  }).catch(() => {});
+                }
+              } else {
+                // Handler returned null — still answer to stop spinner
+                await bot.api.answerCallbackQuery(callback.id).catch(() => {});
+              }
+            } else {
+              // No user found — answer empty
+              await bot.api.answerCallbackQuery(callback.id).catch(() => {});
+            }
+          } catch (err) {
+            runtime.error?.(danger(`OpenJoey callback handler failed: ${String(err)}`));
+            await bot.api.answerCallbackQuery(callback.id).catch(() => {});
+          }
+        } else {
+          // No telegramId — answer empty
+          await bot.api.answerCallbackQuery(callback.id).catch(() => {});
+        }
+        return;
       }
 
       const paginationMatch = data.match(/^commands_page_(\d+|noop)(?::(.+))?$/);
