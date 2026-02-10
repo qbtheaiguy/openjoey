@@ -539,9 +539,14 @@ export const registerTelegramHandlers = ({
                     runtime,
                     fn: () =>
                       bot.api.sendMessage(callbackMessage.chat.id, ojResult.sendText!, {
+                        parse_mode: "Markdown",
                         ...(sendKeyboard ? { reply_markup: sendKeyboard } : {}),
                       }),
-                  }).catch(() => {});
+                  }).catch(() =>
+                    bot.api.sendMessage(callbackMessage.chat.id, ojResult.sendText!, {
+                      ...(sendKeyboard ? { reply_markup: sendKeyboard } : {}),
+                    }),
+                  );
                 }
               } else {
                 // Handler returned null — still answer to stop spinner

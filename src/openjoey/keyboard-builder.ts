@@ -50,11 +50,11 @@ export interface KeyboardContext {
 export function buildStartKeyboard(ctx: KeyboardContext): KeyboardButton[][] {
   const rows: KeyboardButton[][] = [];
 
-  // Row 1: Core actions (always present)
+  // Row 1: Core actions (always present) — newbie-friendly labels
   rows.push([
-    { text: "\u{1F50D} Check a Token", callback_data: "m:check" },
-    { text: "\u{1F4CA} Market Overview", callback_data: "m:market" },
-    { text: "\u2753 Ask Anything", callback_data: "m:ask" },
+    { text: "\u{1F50D} Understand a coin or stock", callback_data: "m:check" },
+    { text: "\u{1F4CA} What's going on in the markets?", callback_data: "m:market" },
+    { text: "\u{1F4AC} Ask me anything (markets & money)", callback_data: "m:ask" },
   ]);
 
   // Day 1 users: only the 3 buttons above — no clutter

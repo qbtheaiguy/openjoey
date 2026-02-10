@@ -341,20 +341,39 @@ async function handleMenuCallback(
   userId: string,
   telegramId: number,
 ): Promise<CallbackResult | null> {
-  // m:check — user tapped "Check a Token"
+  // m:check — user tapped "Understand a coin or stock"
   if (data === "m:check") {
-    return { sendText: "Send a token or stock symbol to check (e.g. SOL, BONK, AAPL)." };
+    return {
+      sendText:
+        "*Understand a coin or stock*\n\n" +
+        "You can send me the *name or ticker* of any crypto (e.g. Bitcoin, SOL, BONK) or stock (e.g. AAPL, Tesla).\n\n" +
+        "I'll give you a *plain-English summary*: what it is, why it might be moving, and whether it's worth a closer look — no jargon, no assumed experience.\n\n" +
+        "Try it: just type a symbol or name and I'll break it down for you.",
+    };
   }
 
-  // m:market — user tapped "Market Overview"
+  // m:market — user tapped "What's going on in the markets?"
   if (data === "m:market") {
-    return { sendText: "Market overview" };
+    return {
+      sendText:
+        "*What's going on in the markets?*\n\n" +
+        '"Markets" here means: *crypto* (Bitcoin, Ethereum, memecoins, etc.), *stocks* (US and global), *commodities* (gold, oil), and *big-picture trends* — what is up, what is down, what people are talking about.\n\n' +
+        "I can give you a *short, simple snapshot*: what's hot, what's not, and one or two things that might matter for your next move. No prior knowledge needed.\n\n" +
+        'Reply with something like *"Give me a quick overview"* or *"What\'s moving today?"* and I\'ll break it down.',
+    };
   }
 
-  // m:ask — user tapped "Ask Anything"
+  // m:ask — user tapped "Ask me anything (markets & money)"
   if (data === "m:ask") {
     return {
-      sendText: "What would you like to know? Ask me anything about markets, crypto, or trading.",
+      sendText:
+        "*Ask me anything — in plain English*\n\n" +
+        "You don't need to know fancy terms. Ask the way you'd ask a friend:\n" +
+        '• *"What\'s Bitcoin and should I care?"*\n' +
+        '• *"Why did [this coin] go up or down?"*\n' +
+        '• *"What\'s a good first step to start trading?"*\n' +
+        '• *"Explain this news headline."*\n\n' +
+        "I'm here for *crypto, stocks, and basic trading ideas*. If you're not sure how to ask, just type what you're curious about and I'll work with it.",
     };
   }
 
