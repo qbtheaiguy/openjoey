@@ -114,23 +114,86 @@ You CANNOT and WILL NOT: write code, scripts, or programs; build apps, websites,
 You CAN ONLY help with: cryptocurrency trading and analysis, market research and token discovery, price alerts and whale tracking, portfolio management, general crypto education, and conversational support.
 If the user asks for code, apps, websites, or technical development, respond briefly: "I'm designed to help with crypto trading and research. For coding assistance, please contact the admin." Do not generate any code or technical implementation.`;
 
-/** Phrases that indicate a code/development request; block before calling the AI for non-admins. */
+/** Normalize for code-request check: lowercase + strip accents so we match multiple languages. */
+function normalizeForCodeCheck(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
+}
+
+/** Phrases that indicate a code/development request; block before calling the AI for non-admins.
+ * English + Spanish, French, German, Portuguese, Italian (phrases in ASCII for accent-agnostic match). */
 const CODE_REQUEST_PHRASES = [
+  // —— English: write/code/give ——
   "write code",
   "write me code",
-  "code for",
+  "write a code for",
+  "write code for",
   "give me code",
   "send code",
+  "code for",
+  "i need code",
+  "i need a script",
+  "help me write code",
+  "help me code",
+  "sample code",
+  "example code",
+  "snippet of code",
+  "code snippet",
+  "boilerplate",
+  "starter code",
+  // —— English: build/create/make (app, site, bot, etc.) ——
   "build app",
   "build an app",
+  "build me a",
+  "build me an",
+  "build a tracker",
+  "tracker app",
+  "habit tracker",
+  "track habit",
+  "build it out",
+  "build out ",
+  "build out a",
+  "build it for me",
+  "build that for me",
+  "build this for me",
+  "build for me",
   "create app",
+  "create me a",
+  "create it for me",
+  "create that for me",
+  "create for me",
   "make an app",
+  "make me a",
+  "make me an",
+  "make it for me",
+  "make that for me",
+  "make for me",
+  "i am building an app",
+  "i'm building an app",
+  "building an app",
+  "want you to build",
+  "want you to create",
+  "want you to write",
+  "need you to build",
+  "can you build",
+  "could you build",
+  "please build",
+  "help me build",
+  "help me create",
+  "help me make",
   "build website",
   "create website",
   "build a site",
+  // —— English: script/program/implement ——
   "write script",
   "write a script",
   "create script",
+  "implement it",
+  "implement for me",
+  "code it for me",
   "program",
   "programming",
   "develop",
@@ -138,6 +201,8 @@ const CODE_REQUEST_PHRASES = [
   "build a bot",
   "make a bot",
   "create a bot",
+  "scaffold",
+  // —— English: tech stack / tools ——
   "smart contract",
   "javascript",
   "python",
@@ -188,11 +253,80 @@ const CODE_REQUEST_PHRASES = [
   "cli tool",
   "command line",
   "automation script",
+  // —— Spanish (ASCII for accent-agnostic match) ——
+  "escribe codigo",
+  "escribeme codigo",
+  "codigo para",
+  "crear una app",
+  "crear un app",
+  "construir una app",
+  "hazme una app",
+  "construye para mi",
+  "crea para mi",
+  "programa para",
+  "desarrollar",
+  "construye ",
+  "crea una app",
+  "hacer una aplicacion",
+  "quiero que me construyas",
+  "quiero que me crees",
+  "escribe un script",
+  "dame codigo",
+  "necesito codigo",
+  "programar",
+  // —— French ——
+  "ecris du code",
+  "ecris moi du code",
+  "code pour",
+  "cree une app",
+  "cree moi une app",
+  "construire une app",
+  "developpe pour moi",
+  "programme pour",
+  "developper",
+  "creer une application",
+  "donne moi du code",
+  "j'ai besoin de code",
+  // —— German ——
+  "schreib code",
+  "schreib mir code",
+  "code fur",
+  "programm fur",
+  "entwickle",
+  "entwickle fur mich",
+  "bau mir eine app",
+  "erstelle eine app",
+  "app erstellen",
+  "programmieren",
+  "gib mir code",
+  // —— Portuguese ——
+  "escreve codigo",
+  "escreve me codigo",
+  "codigo para",
+  "criar um app",
+  "criar uma app",
+  "construir um app",
+  "faz para mim",
+  "desenvolver",
+  "programar",
+  "me da codigo",
+  "preciso de codigo",
+  // —— Italian ——
+  "scrivi codice",
+  "scrivimi codice",
+  "codice per",
+  "crea un'app",
+  "crea un app",
+  "costruisci per me",
+  "sviluppa",
+  "programma per",
+  "dammi codice",
+  "ho bisogno di codice",
 ];
 
 function containsCodeRequest(text: string): boolean {
-  const lower = text.toLowerCase().trim();
-  return CODE_REQUEST_PHRASES.some((p) => lower.includes(p));
+  const normalized = normalizeForCodeCheck(text);
+  return CODE_REQUEST_PHRASES.some((p) => normalized.includes(normalizeForCodeCheck(p)));
 }
 
 /** Message sent when a non-admin triggers the code-request pre-filter (no API call). */
