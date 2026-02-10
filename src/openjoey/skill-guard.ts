@@ -5,13 +5,16 @@
  * Part of the V2 Multi-Layer Enforcement Architecture.
  */
 
-import { getAllowedSkills } from "./session-isolation.js";
+import type { OpenJoeyRole } from "./session-isolation.js";
+import { getAllowedSkillsForRole } from "./session-isolation.js";
 import { getOpenJoeyDB } from "./supabase-client.js";
 
 export interface SkillExecutionContext {
   telegramId: number;
   userId: string;
   tier: string;
+  /** Admin = all skills allowed; subscriber = trading/research/chat only. */
+  role: OpenJoeyRole;
   skillName: string;
   userQuery: string;
 }
@@ -93,13 +96,13 @@ export async function guardSkillExecution(ctx: SkillExecutionContext): Promise<S
     console.error("[openjoey] failed to fetch skill metadata from DB:", err);
   }
 
-  // 2. Check tier access (Role-Based Access Control)
-  const allowedSkills = getAllowedSkills(ctx.tier);
-  if (!allowedSkills.includes(ctx.skillName)) {
+  // 2. Check role-based skill access (admin = all, subscriber = trading/research/chat only)
+  const allowedSkills = getAllowedSkillsForRole(ctx.role);
+  if (allowedSkills !== undefined && !allowedSkills.includes(ctx.skillName)) {
     const displayName = skillMeta?.displayName || ctx.skillName;
     return {
       allowed: false,
-      blockMessage: `🔒 ${displayName} is not available on your current plan. Upgrade to unlock it → /subscribe`,
+      blockMessage: `🔒 ${displayName} is not available. Available categories: trading, research, chat.`,
       shouldLogUsage: false,
       costTier: skillMeta?.costTier || "standard",
     };

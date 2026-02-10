@@ -10,12 +10,17 @@
 
 import { getOpenJoeyDB } from "./supabase-client.js";
 
+/** Admin = full skill access (including coding). Subscriber = trading, research, chat only. */
+export type OpenJoeyRole = "admin" | "subscriber";
+
 export interface SessionInfo {
   sessionKey: string;
   userId: string;
   telegramId: number;
   tier: string;
   status: string;
+  /** Determines skill access: admin = all skills, subscriber = trading/research/chat only. */
+  role: OpenJoeyRole;
 }
 
 /**
@@ -27,15 +32,23 @@ export function deriveSessionKey(telegramId: number): string {
 }
 
 /**
- * Determine which skills a user has access to.
- *
- * Tier-based filtering is disabled: all users get the full OpenJoey skill set.
- * (All users are paying; custom/premium skills can be reintroduced later via tier or flags.)
+ * Whether the Telegram user is an admin (full skill access including coding).
+ * Set OPENJOEY_ADMIN_TELEGRAM_IDS to a comma-separated list of Telegram user IDs.
  */
-export function getAllowedSkills(_tier: string): string[] {
-  // Full OpenJoey skill set — same for every tier
-  const CORE_SKILLS = ["edy", "signal-guru", "research-guru", "crypto-guru", "meme-guru"];
-  const TRADING_SKILLS = [
+export function isAdmin(telegramId: number): boolean {
+  const raw = process.env.OPENJOEY_ADMIN_TELEGRAM_IDS?.trim();
+  if (!raw) return false;
+  const ids = raw.split(",").map((s) => parseInt(s.trim(), 10));
+  return ids.includes(telegramId);
+}
+
+/**
+ * Skills allowed for subscribers only (trading, research, conversational).
+ * No coding / app / website skills — those are admin-only.
+ */
+export function getSubscriberAllowedSkills(): string[] {
+  const CORE = ["edy", "signal-guru", "research-guru", "crypto-guru", "meme-guru"];
+  const TRADING = [
     "stock-guru",
     "forex-guru",
     "commodity-guru",
@@ -47,7 +60,7 @@ export function getAllowedSkills(_tier: string): string[] {
     "news-alerts",
     "economic-calendar",
   ];
-  const SUBSCRIBER_SKILLS = [
+  const SUBSCRIBER = [
     "whale-guru",
     "alert-guru",
     "unusual-options",
@@ -56,9 +69,24 @@ export function getAllowedSkills(_tier: string): string[] {
     "futures-analyzer",
     "cot-analyzer",
   ];
-  const PREMIUM_SKILLS = ["options-guru", "options-strategy", "trading-god-pro"];
+  const PREMIUM = ["options-guru", "options-strategy", "trading-god-pro"];
+  return [...CORE, ...TRADING, ...SUBSCRIBER, ...PREMIUM];
+}
 
-  return [...CORE_SKILLS, ...TRADING_SKILLS, ...SUBSCRIBER_SKILLS, ...PREMIUM_SKILLS];
+/**
+ * Skills allowed for this role. Admin gets undefined (no filter = all skills).
+ * Subscriber gets trading/research/chat only.
+ */
+export function getAllowedSkillsForRole(role: OpenJoeyRole): string[] | undefined {
+  if (role === "admin") return undefined;
+  return getSubscriberAllowedSkills();
+}
+
+/**
+ * @deprecated Use getAllowedSkillsForRole(session.role). Kept for skill-guard backward compat.
+ */
+export function getAllowedSkills(_tier: string): string[] {
+  return getSubscriberAllowedSkills();
 }
 
 /**
@@ -163,6 +191,8 @@ export async function resolveSession(
   const db = getOpenJoeyDB();
   const sessionKey = deriveSessionKey(telegramId);
 
+  const role: OpenJoeyRole = isAdmin(telegramId) ? "admin" : "subscriber";
+
   // Get or create user
   const user = await db.getUser(telegramId);
   if (!user) {
@@ -176,6 +206,7 @@ export async function resolveSession(
       telegramId,
       tier: result.tier,
       status: "trial",
+      role,
     };
   }
 
@@ -188,5 +219,6 @@ export async function resolveSession(
     telegramId,
     tier: user.tier,
     status: user.status,
+    role,
   };
 }

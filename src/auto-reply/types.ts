@@ -39,6 +39,8 @@ export type GetReplyOptions = {
   blockReplyTimeoutMs?: number;
   /** If provided, only load these skills for this session (empty = no skills). */
   skillFilter?: string[];
+  /** When true (e.g. OpenJoey admin), do not filter skills — load all from workspace. */
+  skillFilterAllowAll?: boolean;
   /** Mutable ref to track if a reply was sent (for Slack "first" threading mode). */
   hasRepliedRef?: { value: boolean };
 };

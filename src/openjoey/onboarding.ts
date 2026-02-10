@@ -5,8 +5,13 @@
  * /start, /subscribe, /status, /referral, /cancel, /help
  */
 
+import type { OpenJoeyRole } from "./session-isolation.js";
 import { attributeReferral } from "./referral-system.js";
-import { deriveSessionKey, getAllowedSkills, getTierLimits } from "./session-isolation.js";
+import {
+  deriveSessionKey,
+  getSubscriberAllowedSkills,
+  getTierLimits,
+} from "./session-isolation.js";
 import { getOpenJoeyDB } from "./supabase-client.js";
 
 // ──────────────────────────────────────────────
@@ -210,8 +215,8 @@ export async function handleReferral(telegramId: number): Promise<string> {
 // /help command handler
 // ──────────────────────────────────────────────
 
-export function getHelpMessage(tier: string): string {
-  const skills = getAllowedSkills(tier);
+export function getHelpMessage(tier: string, role: OpenJoeyRole): string {
+  const skills = getSubscriberAllowedSkills();
 
   let msg = `🦞 *OpenJoey Help*\n\n`;
   msg += `*Trading Commands:*\n`;
@@ -233,6 +238,9 @@ export function getHelpMessage(tier: string): string {
 
   msg += `\n*Your tier:* ${tier}\n`;
   msg += `*Available skills:* ${skills.join(", ")}\n`;
+  if (role === "admin") {
+    msg += `\n🔧 *You're logged in as Admin* — full skill access (including coding).\n`;
+  }
 
   if (tier === "free") {
     msg += `\n💡 Upgrade for higher limits and more → /subscribe`;

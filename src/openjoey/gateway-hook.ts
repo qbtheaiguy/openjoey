@@ -29,7 +29,7 @@ import {
 } from "./onboarding.js";
 import {
   resolveSession,
-  getAllowedSkills,
+  getAllowedSkillsForRole,
   getTierPermissions,
   deriveSessionKey,
 } from "./session-isolation.js";
@@ -59,8 +59,10 @@ export interface HookResult {
   sessionKey: string;
   /** User's tier. */
   tier: string;
-  /** Skills allowed for this user. */
-  allowedSkills: string[];
+  /** Skills allowed for this user. When allowAllSkills is true (admin), this can be undefined. */
+  allowedSkills: string[] | undefined;
+  /** When true (admin), do not filter skills — load all skills from workspace. */
+  allowAllSkills?: boolean;
   /** Permissions for this user. */
   permissions: string[];
   /** User's Supabase ID. */
@@ -120,9 +122,12 @@ async function handleSlashCommand(msg: IncomingTelegramMessage): Promise<string 
       return handleCancel(msg.telegramId);
 
     case "/help": {
-      const db = getOpenJoeyDB();
-      const user = await db.getUser(msg.telegramId);
-      return getHelpMessage(user?.tier ?? "free");
+      const session = await resolveSession(
+        msg.telegramId,
+        msg.telegramUsername,
+        msg.telegramChatId,
+      );
+      return getHelpMessage(session.tier, session.role);
     }
 
     case "/alerts": {
@@ -160,7 +165,8 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
         directReply: reply,
         sessionKey,
         tier: session.tier,
-        allowedSkills: getAllowedSkills(session.tier),
+        allowedSkills: getAllowedSkillsForRole(session.role),
+        allowAllSkills: session.role === "admin",
         permissions: getTierPermissions(session.tier),
         userId: session.userId,
         shouldProcess: false,
@@ -178,7 +184,8 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
       directReply: tierCheck.upsellMessage,
       sessionKey,
       tier: session.tier,
-      allowedSkills: getAllowedSkills(session.tier),
+      allowedSkills: getAllowedSkillsForRole(session.role),
+      allowAllSkills: session.role === "admin",
       permissions: getTierPermissions(session.tier),
       userId: session.userId,
       shouldProcess: false,
@@ -221,7 +228,8 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
     return {
       sessionKey,
       tier: session.tier,
-      allowedSkills: getAllowedSkills(session.tier),
+      allowedSkills: getAllowedSkillsForRole(session.role),
+      allowAllSkills: session.role === "admin",
       permissions: getTierPermissions(session.tier),
       userId: session.userId,
       shouldProcess: false,
@@ -232,7 +240,8 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
   return {
     sessionKey,
     tier: session.tier,
-    allowedSkills: getAllowedSkills(session.tier),
+    allowedSkills: getAllowedSkillsForRole(session.role),
+    allowAllSkills: session.role === "admin",
     permissions: getTierPermissions(session.tier),
     userId: session.userId,
     shouldProcess: true,

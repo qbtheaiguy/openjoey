@@ -423,6 +423,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         responseSuffix: hookResult.responseSuffix,
         openjoeyTelegramId: telegramId,
         skillFilterOverride: hookResult.allowedSkills,
+        skillFilterAllowAll: hookResult.allowAllSkills,
       });
     } catch (err) {
       runtime.error?.(danger(`OpenJoey telegram hook failed: ${String(err)}`));

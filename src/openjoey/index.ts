@@ -21,10 +21,13 @@ export {
   deriveSessionKey,
   resolveSession,
   getAllowedSkills,
+  getAllowedSkillsForRole,
+  getSubscriberAllowedSkills,
+  isAdmin,
   getTierPermissions,
   getTierLimits,
 } from "./session-isolation.js";
-export type { SessionInfo } from "./session-isolation.js";
+export type { OpenJoeyRole, SessionInfo } from "./session-isolation.js";
 
 export {
   handleStart,

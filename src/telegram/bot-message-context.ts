@@ -72,6 +72,8 @@ type TelegramMessageContextOptions = {
   openjoeyTelegramId?: number;
   /** OpenJoey: per-user skill allowlist (from tier + DB); only these skills are loaded for this DM. */
   skillFilterOverride?: string[];
+  /** OpenJoey: when true (admin), load all skills (no filter). */
+  skillFilterAllowAll?: boolean;
 };
 
 type TelegramLogger = {
@@ -572,6 +574,7 @@ export const buildTelegramMessageContext = async ({
     topicConfig?.skills,
     groupConfig?.skills,
   );
+  const skillFilterAllowAll = options?.skillFilterAllowAll;
   const systemPromptParts = [
     groupConfig?.systemPrompt?.trim() || null,
     topicConfig?.systemPrompt?.trim() || null,
@@ -706,6 +709,7 @@ export const buildTelegramMessageContext = async ({
     accountId: account.accountId,
     responseSuffix: options?.responseSuffix,
     openjoeyTelegramId: options?.openjoeyTelegramId,
+    skillFilterAllowAll,
   };
 };
 

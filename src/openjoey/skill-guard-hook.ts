@@ -70,6 +70,7 @@ export async function beforeToolCall(
     telegramId: session.telegramId,
     userId: session.userId,
     tier: session.tier,
+    role: session.role,
     skillName: skillName,
     userQuery: "", // We don't have the full query here
   });
@@ -128,6 +129,7 @@ export async function afterToolCall(
       telegramId: session.telegramId,
       userId: session.userId,
       tier: session.tier,
+      role: session.role,
       skillName: skillName,
       userQuery: "",
     },

@@ -64,10 +64,9 @@ export async function getReplyFromConfig(
     sessionKey: agentSessionKey,
     config: cfg,
   });
-  const mergedSkillFilter = mergeSkillFilters(
-    opts?.skillFilter,
-    resolveAgentSkillsFilter(cfg, agentId),
-  );
+  const mergedSkillFilter = opts?.skillFilterAllowAll
+    ? undefined
+    : mergeSkillFilters(opts?.skillFilter, resolveAgentSkillsFilter(cfg, agentId));
   const resolvedOpts =
     mergedSkillFilter !== undefined ? { ...opts, skillFilter: mergedSkillFilter } : opts;
   const agentCfg = cfg.agents?.defaults;
