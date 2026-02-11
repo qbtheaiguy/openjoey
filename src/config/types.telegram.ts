@@ -52,6 +52,12 @@ export type TelegramAccountConfig = {
   commands?: ProviderCommandsConfig;
   /** Custom commands to register in Telegram's command menu (merged with native). */
   customCommands?: TelegramCustomCommand[];
+  /**
+   * When true, only a short product menu is shown when user types "/" (e.g. start, help, status,
+   * referral, alerts, subscribe, cancel, stop). All commands still work when typed; admins keep
+   * full access. Useful for OpenJoey-style bots so newbies are not overwhelmed.
+   */
+  simplifiedMenu?: boolean;
   /** Allow channel-initiated config writes (default: true). */
   configWrites?: boolean;
   /**

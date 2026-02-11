@@ -58,6 +58,18 @@ import { buildInlineKeyboard } from "./send.js";
 
 const EMPTY_RESPONSE_FALLBACK = "No response generated. Please try again.";
 
+/** Short command list for setMyCommands when telegramCfg.simplifiedMenu is true (e.g. OpenJoey). */
+const SIMPLIFIED_MENU_COMMANDS: Array<{ command: string; description: string }> = [
+  { command: "start", description: "Start or open menu." },
+  { command: "help", description: "How to use OpenJoey." },
+  { command: "status", description: "Your account status." },
+  { command: "referral", description: "Refer friends, earn credit." },
+  { command: "alerts", description: "Your price alerts." },
+  { command: "subscribe", description: "Upgrade your plan." },
+  { command: "cancel", description: "Cancel subscription." },
+  { command: "stop", description: "Stop current reply." },
+];
+
 type TelegramNativeCommandContext = Context & { match?: string };
 
 type TelegramCommandAuthResult = {
@@ -370,15 +382,19 @@ export const registerTelegramNativeCommands = ({
     ...customCommands,
   ];
 
+  // When simplifiedMenu is true (e.g. OpenJoey), only show a short product menu in the "/" list.
+  // All commands still work when typed; only the menu is reduced for newbies.
+  const menuCommands = telegramCfg.simplifiedMenu === true ? SIMPLIFIED_MENU_COMMANDS : allCommands;
+
   // Clear stale commands before registering new ones to prevent
   // leftover commands from deleted skills persisting across restarts (#5717).
   // Chain delete → set so a late-resolving delete cannot wipe newly registered commands.
   const registerCommands = () => {
-    if (allCommands.length > 0) {
+    if (menuCommands.length > 0) {
       withTelegramApiErrorLogging({
         operation: "setMyCommands",
         runtime,
-        fn: () => bot.api.setMyCommands(allCommands),
+        fn: () => bot.api.setMyCommands(menuCommands),
       }).catch(() => {});
     }
   };

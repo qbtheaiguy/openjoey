@@ -16,7 +16,8 @@
 
   "channels": {
     "telegram": {
-      "enabled": true
+      "enabled": true,
+      "simplifiedMenu": true
     }
   },
 

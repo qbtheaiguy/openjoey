@@ -466,21 +466,23 @@ async function handleReferralCallback(
   if (data === "r:details") {
     const stats = await db.getReferralStats(user.id);
     const link = `https://t.me/OpenJoeyBot?start=${user.referral_code}`;
-    let text = "\u{1F4B0} *Referral Program*\n\n";
+    let text =
+      "\u{1F4B0} *Refer friends \u2192 earn credit*\n\n" +
+      "Share OpenJoey with people who care about markets. They get a discount; you get credit when they subscribe. Simple.\n\n";
     if (stats && stats.total_earned > 0) {
-      text += `Earned so far: *$${Number(stats.total_earned).toFixed(2)}*\n`;
-      text += `Current balance: $${Number(stats.current_balance).toFixed(2)}\n\n`;
-      text += `\u{1F4CA} Stats\n`;
-      text += `\u2022 Total referrals: ${stats.total_referrals}\n`;
-      text += `\u2022 Converted: ${stats.converted_referrals}\n\n`;
+      text += `\u{1F4CA} *Your progress*\n`;
+      text += `\u2022 Earned so far: *$${Number(stats.total_earned).toFixed(2)}*\n`;
+      text += `\u2022 Current balance: $${Number(stats.current_balance).toFixed(2)}\n`;
+      text += `\u2022 Total referrals: ${stats.total_referrals} (${stats.converted_referrals} subscribed)\n\n`;
     } else {
-      text += "$0.00 earned \u2014 share your link to start!\n\n";
+      text += "\u{1F4CA} *Your progress*\n";
+      text += "\u2022 $0.00 earned \u2014 share your link below to start!\n\n";
     }
-    text += "How it works:\n";
+    text += "*How it works*\n";
     text += "\u2022 You get $1.80 when they *pay* (first subscription)\n";
     text += "\u2022 They get $1.20 off their first month\n";
     text += "\u2022 Refer 6 friends \u2248 free month\n\n";
-    text += `Your link (tap to copy):\n${link}`;
+    text += `*Your link* (tap to copy):\n${link}`;
     const rows: KeyboardButton[][] = [
       [
         { text: "\u{1F4E4} Share Link", callback_data: "r:share" },
@@ -495,7 +497,12 @@ async function handleReferralCallback(
     const link = `https://t.me/OpenJoeyBot?start=${user.referral_code}`;
     return {
       answerText: "Link ready to share!",
-      sendText: `Join me on OpenJoey \u2014 you get $1.20 off:\n${link}`,
+      sendText:
+        "\u{1F4E2} *Share this with friends*\n\n" +
+        "OpenJoey is my AI trading assistant \u2014 it helps me research crypto and stocks, spot moves, and get plain-English answers. No fluff, no jargon.\n\n" +
+        "If you try it through my link, *you get $1.20 off* your first month. I get a bit of credit when you subscribe \u2014 win-win.\n\n" +
+        "Tap the link below to start:\n" +
+        link,
     };
   }
 

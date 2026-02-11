@@ -49,13 +49,16 @@ In `~/.openclaw/openclaw.json` (or `/root/.openclaw/openclaw.json` on the server
     "enabled": true,
     "botToken": "YOUR_BOT_TOKEN",
     "dmPolicy": "open",
-    "allowFrom": ["*"]
+    "allowFrom": ["*"],
+    "simplifiedMenu": true
   }
 }
 ```
 
 - **`dmPolicy: "open"`** — Do not require pairing; allow all DM senders.
 - **`allowFrom: ["*"]`** — Explicit “everyone” for DMs (required when using `open`).
+
+- **`simplifiedMenu: true`** — When users type `/`, show only a short list (start, help, status, referral, alerts, subscribe, cancel, stop) instead of every skill and core command. All commands still work when typed; admins keep full access.
 
 Then restart the gateway (e.g. `docker compose restart openclaw-gateway`).
 
