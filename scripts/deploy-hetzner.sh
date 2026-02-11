@@ -13,7 +13,8 @@ CRON_LINE="0 8 * * * cd /root/openclaw && ./scripts/run-daily-brief-cron.sh"
 echo "Deploying to $HETZNER_HOST ..."
 ssh -i "$SSH_KEY" "$HETZNER_HOST" "set -e
   cd /root/openclaw
-  git pull origin main
+  git fetch origin main
+  git reset --hard origin/main
   docker compose build openclaw-gateway
   docker compose up -d openclaw-gateway
   (crontab -l 2>/dev/null | grep -v run-daily-brief || true
