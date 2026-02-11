@@ -8,7 +8,7 @@ SSH_KEY="${SSH_KEY:-$HOME/.ssh/hetzner-openjoey-new}"
 HETZNER_HOST="${HETZNER_HOST:-root@116.203.215.213}"
 [ -n "$1" ] && HETZNER_HOST="$1"
 
-CRON_LINE="0 8 * * * cd /root/openclaw && bun run scripts/run-daily-brief.ts"
+CRON_LINE="0 8 * * * cd /root/openclaw && ./scripts/run-daily-brief-cron.sh"
 
 echo "Deploying to $HETZNER_HOST ..."
 ssh -i "$SSH_KEY" "$HETZNER_HOST" "set -e

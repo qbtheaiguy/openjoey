@@ -44,25 +44,35 @@ async function main(): Promise<void> {
         try {
           const user = await db.getUserById(id);
           if (!user) return;
-          const text = await buildBriefForUser(db, user, market, news);
+          const { text, parse_mode } = await buildBriefForUser(db, user, market, news);
           const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               chat_id: telegram_id,
               text,
-              parse_mode: "Markdown",
+              parse_mode,
             }),
           });
-          const data = (await res.json()) as { ok?: boolean; error_code?: number };
+          const data = (await res.json()) as {
+            ok?: boolean;
+            error_code?: number;
+            description?: string;
+          };
           if (data.ok) {
             success += 1;
           } else {
+            const msg = data.description ?? `code ${data.error_code ?? "?"}`;
+            console.error(`[${telegram_id}] Telegram: ${msg}`);
             if (data.error_code === 403) blocked += 1;
             else failed += 1;
           }
-        } catch (_err) {
+        } catch (err) {
           failed += 1;
+          console.error(
+            `[${telegram_id}] Error:`,
+            err instanceof Error ? err.message : String(err),
+          );
         }
       }),
     );

@@ -101,15 +101,20 @@ function fmtChange(c: number | null): string {
   return " (" + sign + c.toFixed(2) + "%)";
 }
 
-/** Build one brief for a user (personal + market + news + signature + footer). */
+/** Escape for Telegram HTML: & < > */
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** Build one brief for a user (personal + market + news + signature + footer). Uses HTML so link text like "Fed & rates" and apostrophes don't break Telegram. */
 export async function buildBriefForUser(
   db: OpenJoeyDB,
   user: OpenJoeyUser,
   market: MarketSnapshot,
   news: TradeNewsItem[],
-): Promise<string> {
+): Promise<{ text: string; parse_mode: "HTML" }> {
   const dateLine = new Date().toISOString().slice(0, 10);
-  const lines: string[] = ["\u{1F4F0} *Your brief — " + dateLine + "*", ""];
+  const lines: string[] = ["\u{1F4F0} <b>Your brief — " + dateLine + "</b>", ""];
 
   const watchlist = await db.getUserWatchlist(user.id).catch(() => []);
   const allAlerts = await db.getUserAlerts(user.id, false).catch(() => []);
@@ -117,10 +122,12 @@ export async function buildBriefForUser(
   const triggered = alertsTriggeredOvernight(allAlerts, twelveHoursAgo);
 
   if (watchlist.length > 0 || triggered.length > 0) {
-    lines.push("🔹 *Your overnight*");
+    lines.push("🔹 <b>Your overnight</b>");
     if (watchlist.length > 0) {
       const symbols = watchlist.map((w) => w.symbol).slice(0, 10);
-      lines.push("• Watchlist: " + symbols.join(", ") + ". _(Add price moves when API is wired)_");
+      lines.push(
+        "• Watchlist: " + esc(symbols.join(", ")) + ". <i>(Add price moves when API is wired)</i>",
+      );
     }
     if (triggered.length > 0) {
       const desc = triggered
@@ -129,7 +136,7 @@ export async function buildBriefForUser(
           const timePart = a.triggered_at
             ? " at " + new Date(a.triggered_at).toISOString().slice(11, 16) + " UTC"
             : "";
-          return a.token_symbol + " " + a.condition + " $" + a.target_price + timePart;
+          return esc(a.token_symbol) + " " + a.condition + " $" + a.target_price + timePart;
         })
         .join("; ");
       lines.push("• Alerts: " + desc + ".");
@@ -139,7 +146,7 @@ export async function buildBriefForUser(
     lines.push("");
   }
 
-  lines.push("🔹 *Market*");
+  lines.push("🔹 <b>Market</b>");
   const btc = market.btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 });
   const eth = market.ethPrice.toLocaleString(undefined, { maximumFractionDigits: 0 });
   lines.push(
@@ -151,20 +158,24 @@ export async function buildBriefForUser(
       fmtChange(market.ethChange24h) +
       ".",
   );
-  if (market.dxyLine) lines.push("• " + market.dxyLine);
-  lines.push("");
-
-  lines.push("🔹 *Trade news*");
-  for (const item of news.slice(0, 5)) {
-    lines.push("• [" + item.title + "](" + item.url + ")");
+  if (market.dxyLine) {
+    lines.push(
+      '• DXY and gold: check <a href="https://www.tradingview.com">TradingView</a> for latest.',
+    );
   }
   lines.push("");
 
-  lines.push("_Joey's take: Check the links above for the latest._");
+  lines.push("🔹 <b>Trade news</b>");
+  for (const item of news.slice(0, 5)) {
+    lines.push('• <a href="' + esc(item.url) + '">' + esc(item.title) + "</a>");
+  }
+  lines.push("");
+
+  lines.push("<i>Joey's take: Check the links above for the latest.</i>");
   lines.push("");
   lines.push(JOEY_SIGNATURE);
   lines.push("");
   lines.push("Pause or change time: /brief_settings");
 
-  return lines.join("\n");
+  return { text: lines.join("\n"), parse_mode: "HTML" };
 }

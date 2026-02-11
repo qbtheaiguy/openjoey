@@ -9,7 +9,7 @@ SSH_KEY="${SSH_KEY:-$HOME/.ssh/hetzner-openjoey-new}"
 HETZNER_HOST="${HETZNER_HOST:-root@116.203.215.213}"
 [ -n "$1" ] && HETZNER_HOST="$1"
 
-CRON_LINE="0 8 * * * cd /root/openclaw && bun run scripts/run-daily-brief.ts"
+CRON_LINE="0 8 * * * cd /root/openclaw && ./scripts/run-daily-brief-cron.sh"
 
 echo "Updating $HETZNER_HOST: git pull and add daily brief cron (8 AM UTC)..."
 ssh -i "$SSH_KEY" "$HETZNER_HOST" "cd /root/openclaw && git pull origin main && (crontab -l 2>/dev/null | grep -v run-daily-brief || true; echo '$CRON_LINE') | crontab - && echo 'Cron installed.' && crontab -l | grep -E 'run-daily-brief|8 \* \* \*' || true"

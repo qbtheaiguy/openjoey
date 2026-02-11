@@ -154,8 +154,9 @@ Pause or change time: /brief_settings (or button)
 ### 8.1 Cron (8 AM UTC)
 
 - **Runner script:** `scripts/run-daily-brief.ts`. Requires env: `SUPABASE_URL` (or `OPENJOEY_SUPABASE_URL`), `SUPABASE_SERVICE_ROLE_KEY` (or `OPENJOEY_SUPABASE_SERVICE_ROLE_KEY`), `TELEGRAM_BOT_TOKEN` (or `OPENJOEY_TELEGRAM_BOT_TOKEN`).
-- **Schedule:** Run once per day at 8 AM UTC so every user gets a brief when they wake up. Example crontab on the server:
-  - `0 8 * * * cd /path/to/repo && bun run scripts/run-daily-brief.ts`
+- **Cron has no env:** Use the wrapper `scripts/run-daily-brief-cron.sh` in crontab so `.env` is loaded (otherwise the token and Supabase keys are empty and all sends fail).
+- **Schedule:** Run once per day at 8 AM UTC. Example crontab on the server:
+  - `0 8 * * * cd /root/openclaw && ./scripts/run-daily-brief-cron.sh`
 - **Opt-out / settings:** Footer in the brief: “Pause or change time: /brief_settings”. Implement `/brief_settings` (or `/brief_pause`) to call `setDailyBriefPaused` / `setDailyBriefOptedIn` (see Supabase client).
 
 ---
