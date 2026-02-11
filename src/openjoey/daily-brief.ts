@@ -1,0 +1,170 @@
+/**
+ * OpenJoey daily brief: build one text-only morning message per user.
+ * Market snapshot (CoinGecko), trade news (placeholder), optional personal block (watchlist + alerts).
+ */
+
+import type { Alert, OpenJoeyDB, OpenJoeyUser, WatchlistItem } from "./supabase-client.js";
+import { JOEY_SIGNATURE } from "./constants.js";
+
+export interface MarketSnapshot {
+  btcPrice: number;
+  btcChange24h: number | null;
+  ethPrice: number;
+  ethChange24h: number | null;
+  dxyLine?: string;
+  goldLine?: string;
+}
+
+export interface TradeNewsItem {
+  title: string;
+  url: string;
+}
+
+const COINGECKO_IDS: Record<string, string> = {
+  BTC: "bitcoin",
+  ETH: "ethereum",
+  SOL: "solana",
+  BONK: "bonk",
+  PEPE: "pepe",
+  DOGE: "dogecoin",
+  XRP: "ripple",
+  AVAX: "avalanche-2",
+  MATIC: "matic-network",
+  LINK: "chainlink",
+  DOT: "polkadot",
+  UNI: "uniswap",
+  ATOM: "cosmos",
+  LTC: "litecoin",
+  ARB: "arbitrum",
+  OP: "optimism",
+  SUI: "sui",
+  APT: "aptos",
+  INJ: "injective-protocol",
+  TIA: "celestia",
+  SEI: "sei-network",
+  WIF: "dogwifcoin",
+  FLOKI: "floki",
+  NEAR: "near",
+  FIL: "filecoin",
+  AAVE: "aave",
+  MKR: "maker",
+  CRV: "curve-dao-token",
+};
+
+/** Fetch BTC/ETH (and optional DXY/gold) for the market block. */
+export async function fetchMarketSnapshot(): Promise<MarketSnapshot> {
+  const url =
+    "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true";
+  const res = await fetch(url);
+  if (!res.ok) {
+    return {
+      btcPrice: 0,
+      btcChange24h: null,
+      ethPrice: 0,
+      ethChange24h: null,
+    };
+  }
+  const data = (await res.json()) as Record<string, { usd?: number; usd_24h_change?: number }>;
+  return {
+    btcPrice: data.bitcoin?.usd ?? 0,
+    btcChange24h: data.bitcoin?.usd_24h_change ?? null,
+    ethPrice: data.ethereum?.usd ?? 0,
+    ethChange24h: data.ethereum?.usd_24h_change ?? null,
+    dxyLine: "DXY and gold: check [TradingView](https://www.tradingview.com) for latest.",
+    goldLine: undefined,
+  };
+}
+
+/** Fetch a short list of trade-relevant headlines with links. v1: placeholder or simple RSS. */
+export async function fetchTradeNews(): Promise<TradeNewsItem[]> {
+  // v1: static placeholder so pipeline works; replace with News API / RSS later
+  const placeholder: TradeNewsItem[] = [
+    { title: "Fed & rates", url: "https://www.federalreserve.gov" },
+    { title: "Crypto headlines", url: "https://www.coindesk.com" },
+    { title: "Markets overview", url: "https://www.reuters.com/markets" },
+  ];
+  return placeholder;
+}
+
+/** Alerts triggered in the last 12 hours (UTC). */
+function alertsTriggeredOvernight(alerts: Alert[], since: Date): Alert[] {
+  return alerts.filter((a) => {
+    const t = a.triggered_at ? new Date(a.triggered_at) : null;
+    return t && t >= since;
+  });
+}
+
+/** Format 24h change for display. */
+function fmtChange(c: number | null): string {
+  if (c == null) return "";
+  const sign = c >= 0 ? "+" : "";
+  return " (" + sign + c.toFixed(2) + "%)";
+}
+
+/** Build one brief for a user (personal + market + news + signature + footer). */
+export async function buildBriefForUser(
+  db: OpenJoeyDB,
+  user: OpenJoeyUser,
+  market: MarketSnapshot,
+  news: TradeNewsItem[],
+): Promise<string> {
+  const dateLine = new Date().toISOString().slice(0, 10);
+  const lines: string[] = ["\u{1F4F0} *Your brief — " + dateLine + "*", ""];
+
+  const watchlist = await db.getUserWatchlist(user.id).catch(() => []);
+  const allAlerts = await db.getUserAlerts(user.id, false).catch(() => []);
+  const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+  const triggered = alertsTriggeredOvernight(allAlerts, twelveHoursAgo);
+
+  if (watchlist.length > 0 || triggered.length > 0) {
+    lines.push("🔹 *Your overnight*");
+    if (watchlist.length > 0) {
+      const symbols = watchlist.map((w) => w.symbol).slice(0, 10);
+      lines.push("• Watchlist: " + symbols.join(", ") + ". _(Add price moves when API is wired)_");
+    }
+    if (triggered.length > 0) {
+      const desc = triggered
+        .slice(0, 5)
+        .map((a) => {
+          const timePart = a.triggered_at
+            ? " at " + new Date(a.triggered_at).toISOString().slice(11, 16) + " UTC"
+            : "";
+          return a.token_symbol + " " + a.condition + " $" + a.target_price + timePart;
+        })
+        .join("; ");
+      lines.push("• Alerts: " + desc + ".");
+    } else if (watchlist.length > 0) {
+      lines.push("• Alerts: None triggered.");
+    }
+    lines.push("");
+  }
+
+  lines.push("🔹 *Market*");
+  const btc = market.btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  const eth = market.ethPrice.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  lines.push(
+    "• BTC $" +
+      btc +
+      fmtChange(market.btcChange24h) +
+      ", ETH $" +
+      eth +
+      fmtChange(market.ethChange24h) +
+      ".",
+  );
+  if (market.dxyLine) lines.push("• " + market.dxyLine);
+  lines.push("");
+
+  lines.push("🔹 *Trade news*");
+  for (const item of news.slice(0, 5)) {
+    lines.push("• [" + item.title + "](" + item.url + ")");
+  }
+  lines.push("");
+
+  lines.push("_Joey's take: Check the links above for the latest._");
+  lines.push("");
+  lines.push(JOEY_SIGNATURE);
+  lines.push("");
+  lines.push("Pause or change time: /brief_settings");
+
+  return lines.join("\n");
+}

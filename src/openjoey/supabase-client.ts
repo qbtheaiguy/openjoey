@@ -32,6 +32,10 @@ export interface OpenJoeyUser {
   updated_at: string;
   /** When true, user has unsubscribed from admin broadcasts (/stop). */
   broadcast_opt_out?: boolean;
+  /** When false, user does not receive the daily brief. Default true. */
+  daily_brief_opted_in?: boolean;
+  /** When set, user does not receive the brief until this time (UTC). */
+  daily_brief_paused_until?: string | null;
 }
 
 export interface TierAccessResult {
@@ -226,6 +230,38 @@ export class OpenJoeyDB {
   async setBroadcastOptOut(telegramId: number, optOut: boolean): Promise<void> {
     await this.update("users", `telegram_id=eq.${telegramId}`, {
       broadcast_opt_out: optOut,
+    });
+  }
+
+  /** Users who should receive the daily brief (opted in, not paused). */
+  async getUsersForDailyBrief(): Promise<Array<{ telegram_id: number; id: string }>> {
+    const rows = await this.get<{
+      telegram_id: number;
+      id: string;
+      daily_brief_opted_in: boolean | null;
+      daily_brief_paused_until: string | null;
+    }>("users", "select=telegram_id,id,daily_brief_opted_in,daily_brief_paused_until");
+    const now = new Date();
+    return rows
+      .filter(
+        (r) =>
+          r.daily_brief_opted_in !== false &&
+          (r.daily_brief_paused_until == null || new Date(r.daily_brief_paused_until) < now),
+      )
+      .map((r) => ({ telegram_id: r.telegram_id, id: r.id }));
+  }
+
+  /** Pause daily brief until a given time (null = resume). */
+  async setDailyBriefPaused(telegramId: number, pausedUntil: string | null): Promise<void> {
+    await this.update("users", `telegram_id=eq.${telegramId}`, {
+      daily_brief_paused_until: pausedUntil,
+    });
+  }
+
+  /** Opt in or out of daily brief. */
+  async setDailyBriefOptedIn(telegramId: number, optedIn: boolean): Promise<void> {
+    await this.update("users", `telegram_id=eq.${telegramId}`, {
+      daily_brief_opted_in: optedIn,
     });
   }
 

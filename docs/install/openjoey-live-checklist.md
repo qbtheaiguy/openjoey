@@ -49,6 +49,14 @@ If you see a generic reply or an error, check:
 - Hetzner gateway logs for `OpenJoey telegram hook failed` (indicates Supabase or env issue).
 - That `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set in `/root/openclaw/.env` on the server and that the Supabase project has `register_telegram_user` and the `users` table.
 
-## 4. Admin dashboard (optional)
+## 4. Daily brief (8 AM UTC)
+
+So every user gets a morning brief when they wake up, run the daily brief job once per day at 8 AM UTC. On the Hetzner server (or any host with env and repo):
+
+- **Script:** `scripts/run-daily-brief.ts`. Same env as the gateway: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `TELEGRAM_BOT_TOKEN`.
+- **Cron example:** `0 8 * * * cd /root/openclaw && bun run scripts/run-daily-brief.ts`
+- **Opt-out:** Users see “Pause or change time: /brief_settings” in the brief; implement `/brief_settings` or `/brief_pause` to call `setDailyBriefPaused` / `setDailyBriefOptedIn` (see [Daily brief spec](../openjoey-daily-brief-spec.md) §8.1).
+
+## 5. Admin dashboard (optional)
 
 The admin dashboard is deployed separately to Vercel (see [OpenJoey Admin – Vercel](openjoey-admin-vercel.md)). It uses the same Supabase project and the same `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (set in the Vercel project env). No extra wiring is required for “live” beyond the gateway and Supabase steps above.
