@@ -102,6 +102,7 @@ const SLASH_COMMANDS = new Set([
   "/help",
   "/alerts",
   "/upgrade",
+  "/skill",
   "/skills",
   "/favorites",
   "/broadcast",
@@ -580,8 +581,8 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
       };
     }
 
-    // 1b. /skills and /favorites: produce directReply + replyMarkup together
-    if (cmd === "/skills" || cmd === "/favorites") {
+    // 1b. /skill, /skills and /favorites: produce directReply + replyMarkup together
+    if (cmd === "/skill" || cmd === "/skills" || cmd === "/favorites") {
       const session = await resolveSession(
         msg.telegramId,
         msg.telegramUsername,
@@ -594,7 +595,7 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
           const favorites = await db.getUserFavorites(user.id).catch(() => []);
           const favNames = favorites.map((f) => f.skill_name);
 
-          if (cmd === "/skills") {
+          if (cmd === "/skill" || cmd === "/skills") {
             const result = await buildSkillsOverview(favNames);
             return {
               directReply: result.text,
@@ -653,7 +654,7 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
       // Fallback if user not found
       return {
         directReply:
-          cmd === "/skills"
+          cmd === "/skill" || cmd === "/skills"
             ? "Send /start first to set up your account."
             : "Send /start first to set up your account.",
         sessionKey,
