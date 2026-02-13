@@ -286,9 +286,16 @@ export class OpenJoeyDB {
   }
 
   async recordChartUsage(telegramId: number): Promise<void> {
-    await this.rpc("record_chart_usage", {
-      p_telegram_id: telegramId,
-    });
+    try {
+      // Try to call the RPC function, but don't fail if it doesn't exist
+      await this.rpc("record_chart_usage", {
+        p_telegram_id: telegramId,
+      });
+    } catch (error) {
+      // Silently ignore - the RPC function might not exist yet
+      // The chart usage will still be tracked via usage_events
+      console.warn(`[OpenJoey] recordChartUsage skipped for ${telegramId}: ${error}`);
+    }
   }
 
   // --------------- Alerts ---------------
