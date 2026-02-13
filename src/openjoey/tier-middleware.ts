@@ -5,6 +5,7 @@
  * Used by the gateway hook system to gate skill execution.
  */
 
+import { isAdmin } from "./session-isolation.js";
 import { getOpenJoeyDB, type TierAccessResult } from "./supabase-client.js";
 
 export type TierAction =
@@ -43,11 +44,22 @@ const UPSELL_MESSAGES: Record<string, string> = {
 
 /**
  * Check whether a Telegram user is allowed to perform a given action.
+ * Admins bypass all tier restrictions and have unlimited access.
  */
 export async function checkTierGate(
   telegramId: number,
   action: TierAction,
 ): Promise<TierGateResult> {
+  // Admins bypass all tier restrictions - unlimited access
+  if (isAdmin(telegramId)) {
+    return {
+      allowed: true,
+      tier: "admin",
+      status: "active",
+      userId: "admin",
+    };
+  }
+
   const db = getOpenJoeyDB();
   let access: TierAccessResult;
 
@@ -87,8 +99,14 @@ export async function checkTierGate(
 /**
  * Post-analysis hook: record usage + maybe show FOMO.
  * Call this AFTER a successful chart analysis.
+ * Admins bypass all tier restrictions and never see FOMO messages.
  */
 export async function postAnalysisHook(telegramId: number): Promise<string | null> {
+  // Admins bypass all tier restrictions - no FOMO messages
+  if (isAdmin(telegramId)) {
+    return null;
+  }
+
   const db = getOpenJoeyDB();
 
   try {
