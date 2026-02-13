@@ -36,16 +36,6 @@ export type DiscoveryConfig = {
   mdns?: MdnsDiscoveryConfig;
 };
 
-export type CanvasHostConfig = {
-  enabled?: boolean;
-  /** Directory to serve (default: ~/.openclaw/workspace/canvas). */
-  root?: string;
-  /** HTTP port to listen on (default: 18793). */
-  port?: number;
-  /** Enable live-reload file watching + WS reloads (default: true). */
-  liveReload?: boolean;
-};
-
 export type TalkConfig = {
   /** Default ElevenLabs voice ID for Talk mode. */
   voiceId?: string;
@@ -198,13 +188,6 @@ export type GatewayHttpConfig = {
 };
 
 export type GatewayNodesConfig = {
-  /** Browser routing policy for node-hosted browser proxies. */
-  browser?: {
-    /** Routing mode (default: auto). */
-    mode?: "auto" | "manual" | "off";
-    /** Pin to a specific node id/name (optional). */
-    node?: string;
-  };
   /** Additional node.invoke commands to allow on the gateway. */
   allowCommands?: string[];
   /** Commands to deny even if they appear in the defaults or node claims. */

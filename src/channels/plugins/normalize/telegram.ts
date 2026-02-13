@@ -24,12 +24,15 @@ export function normalizeTelegramMessagingTarget(raw: string): string | undefine
   return `telegram:${normalized}`.toLowerCase();
 }
 
-export function looksLikeTelegramTargetId(raw: string): boolean {
+export function looksLikeTelegramTargetId(raw: string, normalized?: string): boolean {
   const trimmed = raw.trim();
   if (!trimmed) {
     return false;
   }
-  if (/^(telegram|tg):/i.test(trimmed)) {
+  if (/^(telegram|tg|channel|group|user|conversation):/i.test(trimmed)) {
+    return true;
+  }
+  if (normalized?.startsWith("telegram:@") || normalized?.startsWith("tg:@")) {
     return true;
   }
   if (trimmed.startsWith("@")) {

@@ -20,7 +20,9 @@ export type DashboardStats = {
 
 export async function getDashboardStats(): Promise<DashboardStats | null> {
   const db = getAdminDB();
-  if (!db) return null;
+  if (!db) {
+    return null;
+  }
 
   try {
     const [totalUsers, totalUsage, recentLogs, usageRows] = await Promise.all([
@@ -47,7 +49,7 @@ export async function getDashboardStats(): Promise<DashboardStats | null> {
     }
     const topSkills = Object.entries(breakdown)
       .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
+      .toSorted((a, b) => b.count - a.count)
       .slice(0, 8);
 
     let revenue: number | null = null;

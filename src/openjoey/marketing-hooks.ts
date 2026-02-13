@@ -88,7 +88,9 @@ export function getPostChartFomo(): string {
  */
 export function getBlockedActionMessage(action: string): string {
   const messages = BLOCKED_ACTION_MESSAGES[action];
-  if (messages) return pickRandom(messages);
+  if (messages) {
+    return pickRandom(messages);
+  }
   return "This feature requires a subscription. Upgrade for $10/month → /subscribe";
 }
 
@@ -99,7 +101,9 @@ export function getBlockedActionMessage(action: string): string {
 export function getTimedTrigger(daysOnFreeTier: number): string | null {
   // Find the most recent applicable trigger
   const applicable = TIMED_TRIGGERS.filter((t) => t.daysOnFree <= daysOnFreeTier);
-  if (applicable.length === 0) return null;
+  if (applicable.length === 0) {
+    return null;
+  }
 
   // Only fire each trigger once: on the exact day
   const exact = TIMED_TRIGGERS.find((t) => t.daysOnFree === daysOnFreeTier);
@@ -132,9 +136,7 @@ export function getTrialExpiryWarning(hoursLeft: number): string {
     );
   }
   if (hoursLeft <= 24) {
-    return (
-      `📢 Last day of your trial!\n\n` + `Lock in unlimited access before it expires → /subscribe`
-    );
+    return `📢 Last day of your trial!\n\nLock in unlimited access before it expires → /subscribe`;
   }
   return "";
 }

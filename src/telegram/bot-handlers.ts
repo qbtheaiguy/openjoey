@@ -493,7 +493,7 @@ export const registerTelegramHandlers = ({
                 // Answer callback with toast text, or empty to stop loading spinner
                 await bot.api
                   .answerCallbackQuery(callback.id, {
-                    ...(ojResult.answerText ? { text: ojResult.answerText } : {}),
+                    text: ojResult.answerText,
                   })
                   .catch(() => {});
                 // Edit original message if editText is set (§9.2 breadcrumb)
@@ -511,7 +511,7 @@ export const registerTelegramHandlers = ({
                       editText,
                       {
                         parse_mode: "Markdown",
-                        ...(editKeyboard ? { reply_markup: editKeyboard } : {}),
+                        reply_markup: editKeyboard,
                       },
                     );
                   } catch (editErr) {
@@ -540,11 +540,11 @@ export const registerTelegramHandlers = ({
                     fn: () =>
                       bot.api.sendMessage(callbackMessage.chat.id, ojResult.sendText!, {
                         parse_mode: "Markdown",
-                        ...(sendKeyboard ? { reply_markup: sendKeyboard } : {}),
+                        reply_markup: sendKeyboard,
                       }),
                   }).catch(() =>
                     bot.api.sendMessage(callbackMessage.chat.id, ojResult.sendText!, {
-                      ...(sendKeyboard ? { reply_markup: sendKeyboard } : {}),
+                      reply_markup: sendKeyboard,
                     }),
                   );
                 }

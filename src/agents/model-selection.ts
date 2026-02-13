@@ -224,9 +224,7 @@ export function resolveConfiguredModelRef(params: {
       // If config or session has wrong provider for Kimi (e.g. anthropic/kimi-k2.5), force moonshot.
       const moonshotModelIds = ["kimi-k2.5", "kimi-k2-thinking", "kimi-k2"];
       const ref = resolved.ref;
-      if (
-        moonshotModelIds.some((id) => normalizeAliasKey(ref.model) === normalizeAliasKey(id))
-      ) {
+      if (moonshotModelIds.some((id) => normalizeAliasKey(ref.model) === normalizeAliasKey(id))) {
         return { provider: "moonshot", model: ref.model };
       }
       return ref;

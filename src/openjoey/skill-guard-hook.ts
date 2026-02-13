@@ -42,7 +42,9 @@ export async function beforeToolCall(
   }
 
   const pathParam = (params.path || params.AbsolutePath) as string;
-  if (!pathParam) return;
+  if (!pathParam) {
+    return;
+  }
 
   const skillName = extractSkillName(pathParam);
   if (!skillName || !SKILL_METADATA[skillName]) {
@@ -105,7 +107,9 @@ export async function afterToolCall(
   }
 
   const pathParam = (params.path || params.AbsolutePath) as string;
-  if (!pathParam) return;
+  if (!pathParam) {
+    return;
+  }
 
   const skillName = extractSkillName(pathParam);
   if (!skillName || !SKILL_METADATA[skillName]) {
@@ -113,7 +117,9 @@ export async function afterToolCall(
   }
 
   const telegramIdMatch = ctx.sessionKey?.match(/user:(\d+)/);
-  if (!telegramIdMatch) return;
+  if (!telegramIdMatch) {
+    return;
+  }
 
   const telegramId = parseInt(telegramIdMatch[1], 10);
   const session = await resolveSession(telegramId);

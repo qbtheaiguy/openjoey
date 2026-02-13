@@ -3,10 +3,7 @@ import type { RuntimeEnv } from "../runtime.js";
 import type { DoctorOptions, DoctorPrompter } from "./doctor-prompter.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { resolveGatewayPort } from "../config/config.js";
-import {
-  resolveGatewayLaunchAgentLabel,
-  resolveNodeLaunchAgentLabel,
-} from "../daemon/constants.js";
+import { resolveGatewayLaunchAgentLabel } from "../daemon/constants.js";
 import { readLastGatewayErrorLine } from "../daemon/diagnostics.js";
 import {
   isLaunchAgentListed,
@@ -114,15 +111,6 @@ export async function maybeRepairGatewayDaemon(params: {
     const gatewayRepaired = await maybeRepairLaunchAgentBootstrap({
       env: process.env,
       title: "Gateway",
-      runtime: params.runtime,
-      prompter: params.prompter,
-    });
-    await maybeRepairLaunchAgentBootstrap({
-      env: {
-        ...process.env,
-        OPENCLAW_LAUNCHD_LABEL: resolveNodeLaunchAgentLabel(),
-      },
-      title: "Node",
       runtime: params.runtime,
       prompter: params.prompter,
     });

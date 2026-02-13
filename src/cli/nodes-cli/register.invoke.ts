@@ -36,7 +36,6 @@ type NodesRunOpts = NodesRpcOpts & {
 type ExecDefaults = {
   security?: ExecSecurity;
   ask?: ExecAsk;
-  node?: string;
   pathPrepend?: string[];
   safeBins?: string[];
 };
@@ -104,7 +103,6 @@ function resolveExecDefaults(
       ? {
           security: globalExec.security,
           ask: globalExec.ask,
-          node: globalExec.node,
           pathPrepend: globalExec.pathPrepend,
           safeBins: globalExec.safeBins,
         }
@@ -114,7 +112,6 @@ function resolveExecDefaults(
   return {
     security: agentExec?.security ?? globalExec?.security,
     ask: agentExec?.ask ?? globalExec?.ask,
-    node: agentExec?.node ?? globalExec?.node,
     pathPrepend: agentExec?.pathPrepend ?? globalExec?.pathPrepend,
     safeBins: agentExec?.safeBins ?? globalExec?.safeBins,
   };
@@ -205,9 +202,9 @@ export function registerNodesInvokeCommands(nodes: Command) {
             throw new Error("command required");
           }
 
-          const nodeQuery = String(opts.node ?? "").trim() || execDefaults?.node?.trim() || "";
+          const nodeQuery = String(opts.node ?? "").trim() || "";
           if (!nodeQuery) {
-            throw new Error("node required (set --node or tools.exec.node)");
+            throw new Error("node required (set --node)");
           }
           const nodeId = await resolveNodeId(opts, nodeQuery);
 
@@ -293,7 +290,7 @@ export function registerNodesInvokeCommands(nodes: Command) {
                 approvedByAsk = true;
                 approvalDecision = "allow-once";
               } else if (askFallback === "allowlist") {
-                // defer allowlist enforcement to node host
+                // defer allowlist enforcement to node side
               } else {
                 throw new Error("exec denied: approval required (approval UI not available)");
               }

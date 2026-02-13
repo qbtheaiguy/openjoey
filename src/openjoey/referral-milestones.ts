@@ -44,18 +44,26 @@ export async function checkAndSendReferralMilestones(
 ): Promise<void> {
   const db = getOpenJoeyDB();
   const user = await db.getUserById(referrerId);
-  if (!user?.telegram_id) return;
+  if (!user?.telegram_id) {
+    return;
+  }
 
   const stats = await db.getReferralStats(referrerId);
-  if (!stats) return;
+  if (!stats) {
+    return;
+  }
 
   const sent = await db.getMilestoneSends(referrerId).catch(() => []);
   const sentSet = new Set(sent);
 
   for (const m of MILESTONES) {
-    if (sentSet.has(m.key)) continue;
+    if (sentSet.has(m.key)) {
+      continue;
+    }
     const reached = m.check(stats);
-    if (!reached) continue;
+    if (!reached) {
+      continue;
+    }
 
     await db.recordMilestoneSent(referrerId, m.key).catch(() => {});
     const keyboard: KeyboardButton[][] = [[{ text: "\u{1F4E4} Share", callback_data: "r:share" }]];

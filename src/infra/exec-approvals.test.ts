@@ -482,9 +482,9 @@ describe("exec approvals wildcard agent", () => {
   });
 });
 
-describe("exec approvals node host allowlist check", () => {
-  // These tests verify the allowlist satisfaction logic used by the node host path
-  // The node host checks: matchAllowlist() || isSafeBinUsage() for each command segment
+describe("exec approvals node-side allowlist check", () => {
+  // These tests verify the allowlist satisfaction logic used by the node side path
+  // The node side checks: matchAllowlist() || isSafeBinUsage() for each command segment
   // Using hardcoded resolution objects for cross-platform compatibility
 
   it("satisfies allowlist when command matches exact path pattern", () => {
@@ -561,7 +561,7 @@ describe("exec approvals node host allowlist check", () => {
 describe("exec approvals default agent migration", () => {
   it("migrates legacy default agent entries to main", () => {
     const file = {
-      version: 1,
+      version: 1 as const,
       agents: {
         default: { allowlist: [{ pattern: "/bin/legacy" }] },
       },
@@ -574,10 +574,10 @@ describe("exec approvals default agent migration", () => {
 
   it("prefers main agent settings when both main and default exist", () => {
     const file = {
-      version: 1,
+      version: 1 as const,
       agents: {
-        main: { ask: "always", allowlist: [{ pattern: "/bin/main" }] },
-        default: { ask: "off", allowlist: [{ pattern: "/bin/legacy" }] },
+        main: { ask: "always" as const, allowlist: [{ pattern: "/bin/main" }] },
+        default: { ask: "off" as const, allowlist: [{ pattern: "/bin/legacy" }] },
       },
     };
     const resolved = resolveExecApprovalsFromFile({ file });

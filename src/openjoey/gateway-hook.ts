@@ -22,12 +22,7 @@ import { getCachedReply, setCachedReply } from "./cache/reply-cache.js";
 import { FAVORITES_CAP } from "./constants.js";
 import { buildStartKeyboard } from "./keyboard-builder.js";
 import { getUserLifecycleData } from "./lifecycle.js";
-import {
-  getPostChartFomo,
-  getBlockedActionMessage,
-  getTrialExpiryWarning,
-  getReferralUpsell,
-} from "./marketing-hooks.js";
+import { getPostChartFomo, getTrialExpiryWarning, getReferralUpsell } from "./marketing-hooks.js";
 import {
   handleStart,
   handleStatus,
@@ -353,8 +348,8 @@ const CODE_IN_REPLY_FALLBACK =
 const CODE_CONTENT_PATTERNS = [
   /```[\s\S]*?```/g, // fenced code blocks
   /`[^`\n]+`/g, // inline code (short)
-  /\b(function|def|class|import|from)\s+\w+\s*[\(\:]/,
-  /\b(interface|type)\s+\w+\s*[\{\=]/,
+  /\b(function|def|class|import|from)\s+\w+\s*[(:]/,
+  /\b(interface|type)\s+\w+\s*[{=]/,
   /<script[\s>]/i,
   /require\s*\(\s*['"]/,
   /console\.log\s*\(/,
@@ -367,7 +362,9 @@ const CODE_CONTENT_PATTERNS = [
  */
 export function containsCodeContent(text: string): boolean {
   const trimmed = text.trim();
-  if (!trimmed) return false;
+  if (!trimmed) {
+    return false;
+  }
   return CODE_CONTENT_PATTERNS.some((p) => {
     if (p instanceof RegExp) {
       const match = trimmed.match(p);
@@ -382,9 +379,11 @@ export function containsCodeContent(text: string): boolean {
  * Otherwise returns the original text. Call this before sending the reply to the user.
  */
 export function filterCodeFromReply(text: string): string {
-  if (!containsCodeContent(text)) return text;
+  if (!containsCodeContent(text)) {
+    return text;
+  }
   // Strip fenced code blocks and replace with a single placeholder line
-  let out = text
+  const out = text
     .replace(/```[\s\S]*?```/g, "\n[Code block removed.]\n")
     .replace(/`[^`\n]{2,200}`/g, "[code]");
   // If what's left is mostly code-ish or very short, replace entirely
@@ -763,7 +762,9 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
       );
       if (hoursLeft <= 24) {
         const warning = getTrialExpiryWarning(hoursLeft);
-        if (warning) responseSuffix = `\n\n---\n${warning}`;
+        if (warning) {
+          responseSuffix = `\n\n---\n${warning}`;
+        }
       }
     }
   }

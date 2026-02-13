@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../../config/config.js";
-import { slackPlugin } from "../../../extensions/slack/src/channel.js";
 import { telegramPlugin } from "../../../extensions/telegram/src/channel.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import { createTestRegistry } from "../../test-utils/channel-plugins.js";
@@ -32,15 +31,6 @@ vi.mock("../../config/sessions.js", async () => {
 
 import { runMessageAction } from "./message-action-runner.js";
 
-const slackConfig = {
-  channels: {
-    slack: {
-      botToken: "xoxb-test",
-      appToken: "xapp-test",
-    },
-  },
-} as OpenClawConfig;
-
 const telegramConfig = {
   channels: {
     telegram: {
@@ -52,18 +42,11 @@ const telegramConfig = {
 describe("runMessageAction threading auto-injection", () => {
   beforeEach(async () => {
     const { createPluginRuntime } = await import("../../plugins/runtime/index.js");
-    const { setSlackRuntime } = await import("../../../extensions/slack/src/runtime.js");
     const { setTelegramRuntime } = await import("../../../extensions/telegram/src/runtime.js");
     const runtime = createPluginRuntime();
-    setSlackRuntime(runtime);
     setTelegramRuntime(runtime);
     setActivePluginRegistry(
       createTestRegistry([
-        {
-          pluginId: "slack",
-          source: "test",
-          plugin: slackPlugin,
-        },
         {
           pluginId: "telegram",
           source: "test",
@@ -86,10 +69,10 @@ describe("runMessageAction threading auto-injection", () => {
     });
 
     await runMessageAction({
-      cfg: slackConfig,
+      cfg: telegramConfig,
       action: "send",
       params: {
-        channel: "slack",
+        channel: "telegram",
         target: "channel:C123",
         message: "hi",
       },
@@ -102,7 +85,7 @@ describe("runMessageAction threading auto-injection", () => {
     });
 
     const call = mocks.executeSendAction.mock.calls[0]?.[0];
-    expect(call?.ctx?.mirror?.sessionKey).toBe("agent:main:slack:channel:c123:thread:111.222");
+    expect(call?.ctx?.mirror?.sessionKey).toBe("agent:main:telegram:channel:c123:thread:111.222");
   });
 
   it("matches auto-threading when channel ids differ in case", async () => {
@@ -112,10 +95,10 @@ describe("runMessageAction threading auto-injection", () => {
     });
 
     await runMessageAction({
-      cfg: slackConfig,
+      cfg: telegramConfig,
       action: "send",
       params: {
-        channel: "slack",
+        channel: "telegram",
         target: "channel:c123",
         message: "hi",
       },
@@ -128,7 +111,7 @@ describe("runMessageAction threading auto-injection", () => {
     });
 
     const call = mocks.executeSendAction.mock.calls[0]?.[0];
-    expect(call?.ctx?.mirror?.sessionKey).toBe("agent:main:slack:channel:c123:thread:333.444");
+    expect(call?.ctx?.mirror?.sessionKey).toBe("agent:main:telegram:channel:c123:thread:333.444");
   });
 
   it("auto-injects telegram threadId from toolContext when omitted", async () => {

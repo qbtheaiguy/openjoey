@@ -30,7 +30,9 @@ export function replyCacheKey(
  */
 export async function getCachedReply(userMessage: string): Promise<string | null> {
   const normalized = normalizeMessageForCache(userMessage);
-  if (!normalized) return null;
+  if (!normalized) {
+    return null;
+  }
   const key = replyCacheKey(normalized, DEFAULT_TTL_SECONDS);
   return redisGet(key);
 }
@@ -45,7 +47,9 @@ export async function setCachedReply(
   ttlSeconds: number = DEFAULT_TTL_SECONDS,
 ): Promise<void> {
   const normalized = normalizeMessageForCache(userMessage);
-  if (!normalized || !replyText?.trim()) return;
+  if (!normalized || !replyText?.trim()) {
+    return;
+  }
   const key = replyCacheKey(normalized, ttlSeconds);
   await redisSet(key, replyText.trim(), ttlSeconds);
 }

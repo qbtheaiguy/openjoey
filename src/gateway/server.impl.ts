@@ -1,9 +1,7 @@
 import path from "node:path";
-import type { CanvasHostServer } from "../canvas-host/server.js";
 import type { PluginServicesHandle } from "../plugins/services.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { ControlUiRootState } from "./control-ui.js";
-import type { startBrowserControlServerIfEnabled } from "./server-browser.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { registerSkillsChangeListener } from "../agents/skills/refresh.js";
 import { initSubagentRegistry } from "../agents/subagent-registry.js";
@@ -30,7 +28,6 @@ import { logAcceptedEnvOption } from "../infra/env.js";
 import { createExecApprovalForwarder } from "../infra/exec-approval-forwarder.js";
 import { onHeartbeatEvent } from "../infra/heartbeat-events.js";
 import { startHeartbeatRunner } from "../infra/heartbeat-runner.js";
-import { getMachineDisplayName } from "../infra/machine-name.js";
 import { ensureOpenClawCliOnPath } from "../infra/path-env.js";
 import { setGatewaySigusr1RestartPolicy } from "../infra/restart.js";
 import {
@@ -41,6 +38,7 @@ import {
 import { scheduleGatewayUpdateCheck } from "../infra/update-startup.js";
 import { startDiagnosticHeartbeat, stopDiagnosticHeartbeat } from "../logging/diagnostic.js";
 import { createSubsystemLogger, runtimeForLogger } from "../logging/subsystem.js";
+import { getOpenJoeyChannelsAllowlist } from "../openjoey/config.js";
 import { runOnboardingWizard } from "../wizard/onboarding.js";
 import { startGatewayConfigReloader } from "./config-reload.js";
 import { ExecApprovalManager } from "./exec-approval-manager.js";
@@ -49,7 +47,7 @@ import { createChannelManager } from "./server-channels.js";
 import { createAgentEventHandler } from "./server-chat.js";
 import { createGatewayCloseHandler } from "./server-close.js";
 import { buildGatewayCronService } from "./server-cron.js";
-import { startGatewayDiscovery } from "./server-discovery-runtime.js";
+import { startGatewayDiscoveryRuntime } from "./server-discovery-runtime.js";
 import { applyGatewayLaneConcurrency } from "./server-lanes.js";
 import { startGatewayMaintenanceTimers } from "./server-maintenance.js";
 import { GATEWAY_EVENTS, listGatewayMethods } from "./server-methods-list.js";
@@ -83,11 +81,11 @@ export { __resetModelCatalogCacheForTest } from "./server-model-catalog.js";
 ensureOpenClawCliOnPath();
 
 const log = createSubsystemLogger("gateway");
-const logCanvas = log.child("canvas");
+
 const logDiscovery = log.child("discovery");
 const logTailscale = log.child("tailscale");
 const logChannels = log.child("channels");
-const logBrowser = log.child("browser");
+
 const logHealth = log.child("health");
 const logCron = log.child("cron");
 const logReload = log.child("reload");
@@ -95,7 +93,6 @@ const logHooks = log.child("hooks");
 const logPlugins = log.child("plugins");
 const logWsControl = log.child("ws");
 const gatewayRuntime = runtimeForLogger(log);
-const canvasRuntime = runtimeForLogger(logCanvas);
 
 export type GatewayServer = {
   close: (opts?: { reason?: string; restartExpectedMs?: number | null }) => Promise<void>;
@@ -234,13 +231,17 @@ export async function startGatewayServer(
     coreGatewayHandlers,
     baseMethods,
   });
+  const openjoeyAllowlist = getOpenJoeyChannelsAllowlist(cfgAtStart);
+  const effectiveChannelPlugins = openjoeyAllowlist
+    ? listChannelPlugins().filter((p) => openjoeyAllowlist.includes(p.id.toLowerCase()))
+    : listChannelPlugins();
   const channelLogs = Object.fromEntries(
-    listChannelPlugins().map((plugin) => [plugin.id, logChannels.child(plugin.id)]),
+    effectiveChannelPlugins.map((plugin) => [plugin.id, logChannels.child(plugin.id)]),
   ) as Record<ChannelId, ReturnType<typeof createSubsystemLogger>>;
   const channelRuntimeEnvs = Object.fromEntries(
     Object.entries(channelLogs).map(([id, logger]) => [id, runtimeForLogger(logger)]),
   ) as Record<ChannelId, RuntimeEnv>;
-  const channelMethods = listChannelPlugins().flatMap((plugin) => plugin.gatewayMethods ?? []);
+  const channelMethods = effectiveChannelPlugins.flatMap((plugin) => plugin.gatewayMethods ?? []);
   const gatewayMethods = Array.from(new Set([...baseGatewayMethods, ...channelMethods]));
   let pluginServices: PluginServicesHandle | null = null;
   const runtimeConfig = await resolveGatewayRuntimeConfig({
@@ -267,7 +268,6 @@ export async function startGatewayServer(
     tailscaleMode,
   } = runtimeConfig;
   let hooksConfig = runtimeConfig.hooksConfig;
-  const canvasHostEnabled = runtimeConfig.canvasHostEnabled;
 
   let controlUiRootState: ControlUiRootState | undefined;
   if (controlUiRootOverride) {
@@ -305,13 +305,11 @@ export async function startGatewayServer(
   const { wizardSessions, findRunningWizard, purgeWizardSession } = createWizardSessionTracker();
 
   const deps = createDefaultDeps();
-  let canvasHostServer: CanvasHostServer | null = null;
   const gatewayTls = await loadGatewayTlsRuntime(cfgAtStart.gateway?.tls, log.child("tls"));
   if (cfgAtStart.gateway?.tls?.enabled && !gatewayTls.enabled) {
     throw new Error(gatewayTls.error ?? "gateway tls: failed to enable");
   }
   const {
-    canvasHost,
     httpServer,
     httpServers,
     httpBindHosts,
@@ -343,15 +341,17 @@ export async function startGatewayServer(
     hooksConfig: () => hooksConfig,
     pluginRegistry,
     deps,
-    canvasRuntime,
-    canvasHostEnabled,
-    allowCanvasHostInTests: opts.allowCanvasHostInTests,
-    logCanvas,
+
     log,
     logHooks,
     logPlugins,
   });
-  let bonjourStop: (() => Promise<void>) | null = null;
+  const discoveryRuntime = startGatewayDiscoveryRuntime({
+    cfg: cfgAtStart,
+    port,
+    log: logDiscovery,
+  });
+
   const nodeRegistry = new NodeRegistry();
   const nodePresenceTimers = new Map<string, ReturnType<typeof setInterval>>();
   const nodeSubscriptions = createNodeSubscriptionManager();
@@ -386,21 +386,6 @@ export async function startGatewayServer(
   });
   const { getRuntimeSnapshot, startChannels, startChannel, stopChannel, markChannelLoggedOut } =
     channelManager;
-
-  const machineDisplayName = await getMachineDisplayName();
-  const discovery = await startGatewayDiscovery({
-    machineDisplayName,
-    port,
-    gatewayTls: gatewayTls.enabled
-      ? { enabled: true, fingerprintSha256: gatewayTls.fingerprintSha256 }
-      : undefined,
-    wideAreaDiscoveryEnabled: cfgAtStart.discovery?.wideArea?.enabled === true,
-    wideAreaDiscoveryDomain: cfgAtStart.discovery?.wideArea?.domain,
-    tailscaleMode,
-    mdnsMode: cfgAtStart.discovery?.mdns?.mode,
-    logDiscovery,
-  });
-  bonjourStop = discovery.bonjourStop;
 
   setSkillsRemoteRegistry(nodeRegistry);
   void primeRemoteSkillsCache();
@@ -467,15 +452,12 @@ export async function startGatewayServer(
     forwarder: execApprovalForwarder,
   });
 
-  const canvasHostServerPort = (canvasHostServer as CanvasHostServer | null)?.port;
-
   attachGatewayWsHandlers({
     wss,
     clients,
     port,
     gatewayHost: bindHost ?? undefined,
-    canvasHostEnabled: Boolean(canvasHost),
-    canvasHostServerPort,
+    canvasHostEnabled: false,
     resolvedAuth,
     gatewayMethods,
     events: GATEWAY_EVENTS,
@@ -545,8 +527,7 @@ export async function startGatewayServer(
     logTailscale,
   });
 
-  let browserControl: Awaited<ReturnType<typeof startBrowserControlServerIfEnabled>> = null;
-  ({ browserControl, pluginServices } = await startGatewaySidecars({
+  ({ pluginServices } = await startGatewaySidecars({
     cfg: cfgAtStart,
     pluginRegistry,
     defaultWorkspaceDir,
@@ -555,7 +536,6 @@ export async function startGatewayServer(
     log,
     logHooks,
     logChannels,
-    logBrowser,
   }));
 
   const { applyHotReload, requestGatewayRestart } = createGatewayReloadHandlers({
@@ -565,7 +545,6 @@ export async function startGatewayServer(
       hooksConfig,
       heartbeatRunner,
       cronState,
-      browserControl,
     }),
     setState: (nextState) => {
       hooksConfig = nextState.hooksConfig;
@@ -573,12 +552,11 @@ export async function startGatewayServer(
       cronState = nextState.cronState;
       cron = cronState.cron;
       cronStorePath = cronState.storePath;
-      browserControl = nextState.browserControl;
     },
     startChannel,
     stopChannel,
     logHooks,
-    logBrowser,
+
     logChannels,
     logCron,
     logReload,
@@ -598,10 +576,7 @@ export async function startGatewayServer(
   });
 
   const close = createGatewayCloseHandler({
-    bonjourStop,
     tailscaleCleanup,
-    canvasHost,
-    canvasHostServer,
     stopChannel,
     pluginServices,
     cron,
@@ -616,7 +591,7 @@ export async function startGatewayServer(
     chatRunState,
     clients,
     configReloader,
-    browserControl,
+    browserControl: null,
     wss,
     httpServer,
     httpServers,
@@ -632,6 +607,7 @@ export async function startGatewayServer(
         skillsRefreshTimer = null;
       }
       skillsChangeUnsub();
+      discoveryRuntime.stop();
       await close(opts);
     },
   };

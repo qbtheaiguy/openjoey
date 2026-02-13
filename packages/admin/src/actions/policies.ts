@@ -15,7 +15,9 @@ export type PolicyRow = {
 
 export async function getTierPolicies(): Promise<{ policies: PolicyRow[] } | null> {
   const db = getAdminDB();
-  if (!db) return null;
+  if (!db) {
+    return null;
+  }
   try {
     const policies = await db.get<PolicyRow>(
       "skill_catalog",

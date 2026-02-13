@@ -2,15 +2,9 @@ import type { AgentBinding, AgentsConfig } from "./types.agents.js";
 import type { ApprovalsConfig } from "./types.approvals.js";
 import type { AuthConfig } from "./types.auth.js";
 import type { DiagnosticsConfig, LoggingConfig, SessionConfig, WebConfig } from "./types.base.js";
-import type { BrowserConfig } from "./types.browser.js";
 import type { ChannelsConfig } from "./types.channels.js";
 import type { CronConfig } from "./types.cron.js";
-import type {
-  CanvasHostConfig,
-  DiscoveryConfig,
-  GatewayConfig,
-  TalkConfig,
-} from "./types.gateway.js";
+import type { DiscoveryConfig, GatewayConfig, TalkConfig } from "./types.gateway.js";
 import type { HooksConfig } from "./types.hooks.js";
 import type { MemoryConfig } from "./types.memory.js";
 import type {
@@ -20,7 +14,6 @@ import type {
   MessagesConfig,
 } from "./types.messages.js";
 import type { ModelsConfig } from "./types.models.js";
-import type { NodeHostConfig } from "./types.node-host.js";
 import type { PluginsConfig } from "./types.plugins.js";
 import type { SkillsConfig } from "./types.skills.js";
 import type { ToolsConfig } from "./types.tools.js";
@@ -64,7 +57,6 @@ export type OpenClawConfig = {
     /** Check for updates on gateway start (npm installs only). */
     checkOnStart?: boolean;
   };
-  browser?: BrowserConfig;
   ui?: {
     /** Accent color for OpenClaw UI chrome (hex). */
     seamColor?: string;
@@ -78,7 +70,6 @@ export type OpenClawConfig = {
   skills?: SkillsConfig;
   plugins?: PluginsConfig;
   models?: ModelsConfig;
-  nodeHost?: NodeHostConfig;
   agents?: AgentsConfig;
   tools?: ToolsConfig;
   bindings?: AgentBinding[];
@@ -93,10 +84,18 @@ export type OpenClawConfig = {
   cron?: CronConfig;
   hooks?: HooksConfig;
   discovery?: DiscoveryConfig;
-  canvasHost?: CanvasHostConfig;
+
   talk?: TalkConfig;
   gateway?: GatewayConfig;
   memory?: MemoryConfig;
+  /** OpenJoey: when set, only these channel ids are loaded at runtime (e.g. telegram, discord, web, whatsapp). Default: all. */
+  openjoey?: {
+    channels?: string[];
+    /** When true, outbound delivery goes through OpenJoey delivery router (thin delegate). Default: false. */
+    useDeliveryRouter?: boolean;
+    /** When true, route some traffic through internal bus to fixed-roster agents. Default: false. */
+    useAgentBus?: boolean;
+  };
 };
 
 export type ConfigValidationIssue = {

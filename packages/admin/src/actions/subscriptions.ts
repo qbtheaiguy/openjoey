@@ -19,7 +19,9 @@ export async function getSubscriptions(): Promise<{
   total: number;
 } | null> {
   const db = getAdminDB();
-  if (!db) return null;
+  if (!db) {
+    return null;
+  }
   try {
     const [rows, total] = await Promise.all([
       db.get<SubscriptionRow>(

@@ -82,8 +82,6 @@ export async function resolveGatewayRuntimeConfig(params: {
   const hasSharedSecret =
     (authMode === "token" && hasToken) || (authMode === "password" && hasPassword);
   const hooksConfig = resolveHooksConfig(params.cfg);
-  const canvasHostEnabled =
-    process.env.OPENCLAW_SKIP_CANVAS_HOST !== "1" && params.cfg.canvasHost?.enabled !== false;
 
   assertGatewayAuthConfigured(resolvedAuth);
   if (tailscaleMode === "funnel" && authMode !== "password") {
@@ -115,6 +113,6 @@ export async function resolveGatewayRuntimeConfig(params: {
     tailscaleConfig,
     tailscaleMode,
     hooksConfig,
-    canvasHostEnabled,
+    canvasHostEnabled: false,
   };
 }

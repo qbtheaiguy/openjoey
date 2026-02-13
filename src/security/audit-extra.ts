@@ -13,7 +13,6 @@ import {
 } from "../agents/sandbox.js";
 import { loadWorkspaceSkillEntries } from "../agents/skills.js";
 import { resolveToolProfilePolicy } from "../agents/tool-policy.js";
-import { resolveBrowserConfig } from "../browser/config.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { MANIFEST_KEY } from "../compat/legacy-names.js";
 import { resolveNativeSkillsEnabled } from "../config/commands.js";
@@ -90,16 +89,13 @@ export function collectAttackSurfaceSummaryFindings(cfg: OpenClawConfig): Securi
   const group = summarizeGroupPolicy(cfg);
   const elevated = cfg.tools?.elevated?.enabled !== false;
   const hooksEnabled = cfg.hooks?.enabled === true;
-  const browserEnabled = cfg.browser?.enabled ?? true;
 
   const detail =
     `groups: open=${group.open}, allowlist=${group.allowlist}` +
     `\n` +
     `tools.elevated: ${elevated ? "enabled" : "disabled"}` +
     `\n` +
-    `hooks: ${hooksEnabled ? "enabled" : "disabled"}` +
-    `\n` +
-    `browser control: ${browserEnabled ? "enabled" : "disabled"}`;
+    `hooks: ${hooksEnabled ? "enabled" : "disabled"}`;
 
   return [
     {
@@ -486,14 +482,6 @@ function isWebFetchEnabled(cfg: OpenClawConfig): boolean {
   return true;
 }
 
-function isBrowserEnabled(cfg: OpenClawConfig): boolean {
-  try {
-    return resolveBrowserConfig(cfg.browser, cfg).enabled;
-  } catch {
-    return true;
-  }
-}
-
 export function collectSmallModelRiskFindings(params: {
   cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
@@ -545,11 +533,7 @@ export function collectSmallModelRiskFindings(params: {
         exposed.push("web_fetch");
       }
     }
-    if (isBrowserEnabled(params.cfg)) {
-      if (isToolAllowedByPolicies("browser", policies)) {
-        exposed.push("browser");
-      }
-    }
+
     for (const tool of exposed) {
       exposureSet.add(tool);
     }
@@ -569,7 +553,7 @@ export function collectSmallModelRiskFindings(params: {
   const exposureDetail =
     exposureList.length > 0
       ? `Uncontrolled input tools allowed: ${exposureList.join(", ")}.`
-      : "No web/browser tools detected for these models.";
+      : "No web tools detected for these models.";
 
   findings.push({
     checkId: "models.small_params",
@@ -583,7 +567,7 @@ export function collectSmallModelRiskFindings(params: {
       `\n` +
       "Small models are not recommended for untrusted inputs.",
     remediation:
-      'If you must use small models, enable sandboxing for all sessions (agents.defaults.sandbox.mode="all") and disable web_search/web_fetch/browser (tools.deny=["group:web","browser"]).',
+      'If you must use small models, enable sandboxing for all sessions (agents.defaults.sandbox.mode="all") and disable web_search/web_fetch (tools.deny=["group:web"]).',
   });
 
   return findings;
@@ -641,18 +625,6 @@ export async function collectPluginsTrustFindings(params: {
       ) ||
       hasString(process.env.TELEGRAM_BOT_TOKEN);
 
-    const slackConfigured =
-      hasString(params.cfg.channels?.slack?.botToken) ||
-      hasString(params.cfg.channels?.slack?.appToken) ||
-      Boolean(
-        params.cfg.channels?.slack?.accounts &&
-        Object.values(params.cfg.channels.slack.accounts).some(
-          (a) => hasAccountStringKey(a, "botToken") || hasAccountStringKey(a, "appToken"),
-        ),
-      ) ||
-      hasString(process.env.SLACK_BOT_TOKEN) ||
-      hasString(process.env.SLACK_APP_TOKEN);
-
     const skillCommandsLikelyExposed =
       (discordConfigured &&
         resolveNativeSkillsEnabled({
@@ -663,13 +635,9 @@ export async function collectPluginsTrustFindings(params: {
       (telegramConfigured &&
         resolveNativeSkillsEnabled({
           providerId: "telegram",
-          providerSetting: params.cfg.channels?.telegram?.commands?.nativeSkills,
-          globalSetting: params.cfg.commands?.nativeSkills,
-        })) ||
-      (slackConfigured &&
-        resolveNativeSkillsEnabled({
-          providerId: "slack",
-          providerSetting: params.cfg.channels?.slack?.commands?.nativeSkills,
+          providerSetting: params.cfg.channels?.telegram?.botToken
+            ? params.cfg.channels?.telegram?.commands?.nativeSkills
+            : undefined,
           globalSetting: params.cfg.commands?.nativeSkills,
         }));
 

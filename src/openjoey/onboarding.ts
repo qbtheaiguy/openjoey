@@ -7,11 +7,7 @@
 
 import type { OpenJoeyRole } from "./session-isolation.js";
 import { attributeReferral } from "./referral-system.js";
-import {
-  deriveSessionKey,
-  getSubscriberAllowedSkills,
-  getTierLimits,
-} from "./session-isolation.js";
+import { getSubscriberAllowedSkills, getTierLimits } from "./session-isolation.js";
 import { getOpenJoeyDB } from "./supabase-client.js";
 
 // ──────────────────────────────────────────────
@@ -90,7 +86,9 @@ export async function handleStart(
 
   if (result.status === "existing") {
     const user = await db.getUser(telegramId);
-    if (!user) return "Something went wrong. Please try again.";
+    if (!user) {
+      return "Something went wrong. Please try again.";
+    }
     return getReturningWelcomeMessage(
       displayName ?? username ?? "trader",
       user.referral_code ?? "",
@@ -217,7 +215,9 @@ export async function handleSubscribe(
 export async function handleReferral(telegramId: number): Promise<string> {
   const db = getOpenJoeyDB();
   const user = await db.getUser(telegramId);
-  if (!user) return "Send /start first!";
+  if (!user) {
+    return "Send /start first!";
+  }
 
   const stats = await db.getReferralStats(user.id);
 
@@ -286,7 +286,9 @@ export function getHelpMessage(tier: string, role: OpenJoeyRole): string {
 export async function handleCancel(telegramId: number): Promise<string> {
   const db = getOpenJoeyDB();
   const user = await db.getUser(telegramId);
-  if (!user) return "Send /start first!";
+  if (!user) {
+    return "Send /start first!";
+  }
 
   if (user.tier === "free" || user.tier === "trial") {
     return "You don't have an active subscription to cancel.";
@@ -311,5 +313,5 @@ export async function handleCancel(telegramId: number): Promise<string> {
 export async function handleStop(telegramId: number): Promise<string> {
   const db = getOpenJoeyDB();
   await db.setBroadcastOptOut(telegramId, true).catch(() => {});
-  return "🔕 You've unsubscribed from announcements.\n\n" + "Use /start to resubscribe.";
+  return "🔕 You've unsubscribed from announcements.\n\nUse /start to resubscribe.";
 }

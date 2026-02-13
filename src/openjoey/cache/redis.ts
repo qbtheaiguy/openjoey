@@ -22,7 +22,7 @@ async function getClient(): Promise<RedisClientType | null> {
   }
   connectPromise = (async (): Promise<RedisClientType | null> => {
     try {
-      const c = createClient({ url: REDIS_URL!.trim() }).on("error", (err) => {
+      const c = createClient({ url: REDIS_URL.trim() }).on("error", (err) => {
         console.error("[openjoey] Redis error:", err);
       }) as RedisClientType;
       await c.connect();
@@ -44,7 +44,9 @@ const PREFIX = "openjoey:";
  */
 export async function redisGet(key: string): Promise<string | null> {
   const c = await getClient();
-  if (!c) return null;
+  if (!c) {
+    return null;
+  }
   try {
     const fullKey = PREFIX + key;
     const v = await c.get(fullKey);
@@ -60,7 +62,9 @@ export async function redisGet(key: string): Promise<string | null> {
  */
 export async function redisSet(key: string, value: string, ttlSeconds?: number): Promise<boolean> {
   const c = await getClient();
-  if (!c) return false;
+  if (!c) {
+    return false;
+  }
   try {
     const fullKey = PREFIX + key;
     if (ttlSeconds != null && ttlSeconds > 0) {

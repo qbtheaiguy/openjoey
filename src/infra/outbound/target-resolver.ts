@@ -129,21 +129,8 @@ export function formatTargetDisplay(params: {
   return withoutPrefix;
 }
 
-function preserveTargetCase(channel: ChannelId, raw: string, normalized: string): string {
-  if (channel !== "slack") {
-    return normalized;
-  }
-  const trimmed = raw.trim();
-  if (/^channel:/i.test(trimmed) || /^user:/i.test(trimmed)) {
-    return trimmed;
-  }
-  if (trimmed.startsWith("#")) {
-    return `channel:${trimmed.slice(1).trim()}`;
-  }
-  if (trimmed.startsWith("@")) {
-    return `user:${trimmed.slice(1).trim()}`;
-  }
-  return trimmed;
+function preserveTargetCase(_channel: ChannelId, _raw: string, normalized: string): string {
+  return normalized;
 }
 
 function detectTargetKind(
@@ -163,11 +150,14 @@ function detectTargetKind(
     return "user";
   }
   if (trimmed.startsWith("#") || /^channel:/i.test(trimmed)) {
+    return "channel";
+  }
+  if (/^group:/i.test(trimmed)) {
     return "group";
   }
 
-  // For some channels (e.g., BlueBubbles/iMessage), bare phone numbers are almost always DM targets.
-  if ((channel === "bluebubbles" || channel === "imessage") && /^\+?\d{6,}$/.test(trimmed)) {
+  // For some channels (e.g., BlueBubbles), bare phone numbers are almost always DM targets.
+  if (channel === "bluebubbles" && /^\+?\d{6,}$/.test(trimmed)) {
     return "user";
   }
 
@@ -364,7 +354,7 @@ export async function resolveMessagingTarget(params: {
     if (/^\+?\d{6,}$/.test(trimmed)) {
       // BlueBubbles/iMessage phone numbers should usually resolve via the directory to a DM chat,
       // otherwise the provider may pick an existing group containing that handle.
-      if (params.channel === "bluebubbles" || params.channel === "imessage") {
+      if (params.channel === "bluebubbles") {
         return false;
       }
       return true;
@@ -434,12 +424,9 @@ export async function resolveMessagingTarget(params: {
       candidates: match.entries,
     };
   }
-  // For iMessage-style channels, allow sending directly to the normalized handle
+  // For BlueBubbles-style channels, allow sending directly to the normalized handle
   // even if the directory doesn't contain an entry yet.
-  if (
-    (params.channel === "bluebubbles" || params.channel === "imessage") &&
-    /^\+?\d{6,}$/.test(query)
-  ) {
+  if (params.channel === "bluebubbles" && /^\+?\d{6,}$/.test(query)) {
     const directTarget = preserveTargetCase(params.channel, raw, normalized);
     return {
       ok: true,

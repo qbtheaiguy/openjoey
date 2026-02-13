@@ -1,11 +1,7 @@
 import type { Command } from "commander";
 import type { CostUsageSummary } from "../../infra/session-cost-usage.js";
-import type { GatewayDiscoverOpts } from "./discover.js";
 import { gatewayStatusCommand } from "../../commands/gateway-status.js";
 import { formatHealthChannelLines, type HealthSummary } from "../../commands/health.js";
-import { loadConfig } from "../../config/config.js";
-import { discoverGatewayBeacons } from "../../infra/bonjour-discovery.js";
-import { resolveWideAreaDiscoveryDomain } from "../../infra/widearea-dns.js";
 import { defaultRuntime } from "../../runtime.js";
 import { formatDocsLink } from "../../terminal/links.js";
 import { colorize, isRich, theme } from "../../terminal/theme.js";
@@ -19,15 +15,7 @@ import {
   runDaemonStop,
   runDaemonUninstall,
 } from "../daemon-cli.js";
-import { withProgress } from "../progress.js";
 import { callGatewayCli, gatewayCallOpts } from "./call.js";
-import {
-  dedupeBeacons,
-  parseDiscoverTimeoutMs,
-  pickBeaconHost,
-  pickGatewayPort,
-  renderBeaconLines,
-} from "./discover.js";
 import { addGatewayRunCommand } from "./run.js";
 
 function styleHealthChannelLine(line: string, rich: boolean): string {
@@ -284,76 +272,5 @@ export function registerGatewayCli(program: Command) {
       await runGatewayCommand(async () => {
         await gatewayStatusCommand(opts, defaultRuntime);
       });
-    });
-
-  gateway
-    .command("discover")
-    .description("Discover gateways via Bonjour (local + wide-area if configured)")
-    .option("--timeout <ms>", "Per-command timeout in ms", "2000")
-    .option("--json", "Output JSON", false)
-    .action(async (opts: GatewayDiscoverOpts) => {
-      await runGatewayCommand(async () => {
-        const cfg = loadConfig();
-        const wideAreaDomain = resolveWideAreaDiscoveryDomain({
-          configDomain: cfg.discovery?.wideArea?.domain,
-        });
-        const timeoutMs = parseDiscoverTimeoutMs(opts.timeout, 2000);
-        const domains = ["local.", ...(wideAreaDomain ? [wideAreaDomain] : [])];
-        const beacons = await withProgress(
-          {
-            label: "Scanning for gateways…",
-            indeterminate: true,
-            enabled: opts.json !== true,
-            delayMs: 0,
-          },
-          async () => await discoverGatewayBeacons({ timeoutMs, wideAreaDomain }),
-        );
-
-        const deduped = dedupeBeacons(beacons).toSorted((a, b) =>
-          String(a.displayName || a.instanceName).localeCompare(
-            String(b.displayName || b.instanceName),
-          ),
-        );
-
-        if (opts.json) {
-          const enriched = deduped.map((b) => {
-            const host = pickBeaconHost(b);
-            const port = pickGatewayPort(b);
-            return { ...b, wsUrl: host ? `ws://${host}:${port}` : null };
-          });
-          defaultRuntime.log(
-            JSON.stringify(
-              {
-                timeoutMs,
-                domains,
-                count: enriched.length,
-                beacons: enriched,
-              },
-              null,
-              2,
-            ),
-          );
-          return;
-        }
-
-        const rich = isRich();
-        defaultRuntime.log(colorize(rich, theme.heading, "Gateway Discovery"));
-        defaultRuntime.log(
-          colorize(
-            rich,
-            theme.muted,
-            `Found ${deduped.length} gateway(s) · domains: ${domains.join(", ")}`,
-          ),
-        );
-        if (deduped.length === 0) {
-          return;
-        }
-
-        for (const beacon of deduped) {
-          for (const line of renderBeaconLines(beacon, rich)) {
-            defaultRuntime.log(line);
-          }
-        }
-      }, "gateway discover failed");
     });
 }

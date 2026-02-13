@@ -4,7 +4,7 @@ import type { RuntimeEnv } from "../../runtime.js";
 import type { AgentCommandOpts } from "./types.js";
 import { AGENT_LANE_NESTED } from "../../agents/lanes.js";
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
-import { createOutboundSendDeps, type CliDeps } from "../../cli/outbound-send-deps.js";
+import { createOutboundSendDeps, type CliDeps } from "../../cli/deps.js";
 import {
   resolveAgentDeliveryPlan,
   resolveAgentOutboundTarget,

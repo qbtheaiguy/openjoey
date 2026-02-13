@@ -12,6 +12,7 @@ import { DEFAULT_AGENT_WORKSPACE_DIR, ensureAgentWorkspace } from "../../agents/
 import { type OpenClawConfig, loadConfig } from "../../config/config.js";
 import { applyLinkUnderstanding } from "../../link-understanding/apply.js";
 import { applyMediaUnderstanding } from "../../media-understanding/apply.js";
+import { isOpenJoeyAgentBusEnabled } from "../../openjoey/config.js";
 import { defaultRuntime } from "../../runtime.js";
 import { resolveCommandAuthorization } from "../command-auth.js";
 import { SILENT_REPLY_TOKEN } from "../tokens.js";
@@ -69,6 +70,31 @@ export async function getReplyFromConfig(
     : mergeSkillFilters(opts?.skillFilter, resolveAgentSkillsFilter(cfg, agentId));
   const resolvedOpts =
     mergedSkillFilter !== undefined ? { ...opts, skillFilter: mergedSkillFilter } : opts;
+
+  // OpenJoey: when agent bus is enabled, enqueue inbound message (shadow mode; current flow continues).
+  if (isOpenJoeyAgentBusEnabled(cfg)) {
+    const { enqueueJob, publish } = await import("../../openjoey/internal_bus/index.js");
+    const job = {
+      id: crypto.randomUUID(),
+      kind: "inbound_message" as const,
+      payload: {
+        sessionKey: agentSessionKey,
+        agentId,
+        body: ctx.Body,
+        bodyForAgent: ctx.BodyForAgent,
+        provider: ctx.Provider,
+        surface: ctx.Surface,
+      },
+      createdAtMs: Date.now(),
+    };
+    enqueueJob(job);
+    publish({
+      topic: "job.enqueued",
+      payload: { jobId: job.id, kind: job.kind },
+      timestampMs: job.createdAtMs,
+    });
+  }
+
   const agentCfg = cfg.agents?.defaults;
   const sessionCfg = cfg.session;
   const { defaultProvider, defaultModel, aliasIndex } = resolveDefaultModel({

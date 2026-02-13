@@ -11,7 +11,6 @@
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
-import * as yaml from "yaml";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -125,31 +124,43 @@ interface ValidationResult {
   warnings: string[];
   info: string[];
   score: number; // 0-100
-  frontmatter: Record<string, any> | null;
+  frontmatter: Record<string, unknown> | null;
 }
 
 interface FrontmatterCheck {
   field: string;
   required: boolean;
-  validator?: (value: any) => boolean;
+  validator?: (value: unknown) => boolean;
   message?: string;
 }
 
 const FRONTMATTER_CHECKS: FrontmatterCheck[] = [
-  { field: "name", required: true, validator: (v) => typeof v === "string" && v.length > 0 },
+  {
+    field: "name",
+    required: true,
+    validator: (v: unknown) => typeof v === "string" && v.length > 0,
+  },
   {
     field: "description",
     required: true,
-    validator: (v) => typeof v === "string" && v.length > 20,
+    validator: (v: unknown) => typeof v === "string" && v.length > 20,
   },
   { field: "metadata", required: false },
   {
     field: "metadata.openclaw.emoji",
     required: false,
-    validator: (v) => typeof v === "string" && v.length > 0,
+    validator: (v: unknown) => typeof v === "string" && v.length > 0,
   },
-  { field: "metadata.openclaw.requires.bins", required: false, validator: (v) => Array.isArray(v) },
-  { field: "metadata.openclaw.requires.env", required: false, validator: (v) => Array.isArray(v) },
+  {
+    field: "metadata.openclaw.requires.bins",
+    required: false,
+    validator: (v: unknown) => Array.isArray(v),
+  },
+  {
+    field: "metadata.openclaw.requires.env",
+    required: false,
+    validator: (v: unknown) => Array.isArray(v),
+  },
 ];
 
 const REQUIRED_SECTIONS = ["## Overview", "## When to Activate"];
@@ -160,41 +171,52 @@ const RECOMMENDED_SECTIONS = ["## Data Sources", "## Output Format", "## Follow-
 // VALIDATION FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Helper: Parse frontmatter from markdown
 function parseFrontmatter(content: string): {
-  frontmatter: Record<string, any> | null;
+  frontmatter: Record<string, unknown> | null;
   body: string;
 } {
-  const normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-
-  if (!normalized.startsWith("---")) {
-    return { frontmatter: null, body: content };
-  }
-
-  const endIndex = normalized.indexOf("\n---", 3);
-  if (endIndex === -1) {
-    return { frontmatter: null, body: content };
-  }
-
-  const yamlBlock = normalized.slice(4, endIndex);
-  const body = normalized.slice(endIndex + 4);
-
   try {
-    const parsed = yaml.parse(yamlBlock);
+    const match = content.match(/^---\n([\s\S]*?)\n---/);
+    if (!match) {
+      return { frontmatter: null, body: content };
+    }
+    const yamlStr = match[1];
+    const body = content.replace(match[0], "").trim();
+
+    // Simple manual YAML-ish parser (only handles basic keys)
+    const lines = yamlStr.split("\n");
+    const parsed: Record<string, unknown> = {};
+    for (const line of lines) {
+      const [key, ...valParts] = line.split(":");
+      if (key && valParts.length > 0) {
+        let val = valParts.join(":").trim();
+        if (val.startsWith("[") && val.endsWith("]")) {
+          parsed[key.trim()] = val
+            .slice(1, -1)
+            .split(",")
+            .map((s) => s.trim().replace(/^"|"$/g, ""));
+        } else {
+          parsed[key.trim()] = val.replace(/^"|"$/g, "");
+        }
+      }
+    }
     return { frontmatter: parsed, body };
-  } catch (e) {
+  } catch {
     return { frontmatter: null, body: content };
   }
 }
 
-function getNestedValue(obj: Record<string, any>, path: string): any {
+function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
   const parts = path.split(".");
-  let current = obj;
+  let current: unknown = obj;
 
   for (const part of parts) {
-    if (current === null || current === undefined) return undefined;
-    current = current[part];
+    if (current === null || current === undefined || typeof current !== "object") {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[part];
   }
-
   return current;
 }
 
@@ -256,27 +278,35 @@ function validateSkill(skillPath: string, config: SkillConfig): ValidationResult
     }
 
     // Check name matches folder
-    if (frontmatter.name && frontmatter.name !== config.name) {
-      result.warnings.push(
-        `Frontmatter name "${frontmatter.name}" doesn't match expected "${config.name}"`,
-      );
-    } else if (frontmatter.name) {
+    if (frontmatter.name !== config.name) {
+      const nameStr =
+        typeof frontmatter.name === "string" ? frontmatter.name : String(frontmatter.name);
+      result.warnings.push(`Frontmatter name "${nameStr}" doesn't match expected "${config.name}"`);
+    } else {
       score += 5;
-      result.info.push(`✓ Name matches: ${frontmatter.name}`);
+      const nameStr =
+        typeof frontmatter.name === "string" ? frontmatter.name : String(frontmatter.name);
+      result.info.push(`✓ Name matches: ${nameStr}`);
     }
 
-    // Check emoji if expected
-    const emoji = getNestedValue(frontmatter, "metadata.openclaw.emoji");
+    // Emoji check
+    const metadata = frontmatter.metadata as Record<string, unknown> | undefined;
+    const openclaw = metadata?.openclaw as Record<string, unknown> | undefined;
+    const clawdbot = metadata?.clawdbot as Record<string, unknown> | undefined;
+    const emoji = openclaw?.emoji || clawdbot?.emoji;
+
     if (config.expectedEmoji) {
       if (emoji === config.expectedEmoji) {
         score += 5;
-        result.info.push(`✓ Emoji: ${emoji}`);
-      } else if (emoji) {
+        result.info.push(`✓ Emoji matches: ${config.expectedEmoji}`);
+      } else if (emoji && typeof emoji === "string") {
         result.warnings.push(`Emoji "${emoji}" differs from expected "${config.expectedEmoji}"`);
+      } else if (emoji) {
+        result.warnings.push(`Emoji of type ${typeof emoji} differs from expected string`);
       } else {
-        result.warnings.push(`Missing emoji, expected: ${config.expectedEmoji}`);
+        result.warnings.push(`Missing expected emoji: ${config.expectedEmoji}`);
       }
-    } else if (emoji) {
+    } else if (emoji && typeof emoji === "string") {
       score += 5;
       result.info.push(`✓ Has emoji: ${emoji}`);
     }
@@ -377,7 +407,9 @@ function checkSessionIsolation(skillsDir: string): TierCheckResult[] {
   const premiumMatch = content.match(/PREMIUM_SKILLS\s*=\s*\[([\s\S]*?)\]/);
 
   const extractSkills = (match: RegExpMatchArray | null): string[] => {
-    if (!match) return [];
+    if (!match) {
+      return [];
+    }
     const skills = match[1].match(/"([^"]+)"/g) || [];
     return skills.map((s) => s.replace(/"/g, ""));
   };
@@ -441,7 +473,9 @@ function main() {
   // Validate each tier
   for (const tier of tiers) {
     const skills = skillsByTier.get(tier) || [];
-    if (skills.length === 0) continue;
+    if (skills.length === 0) {
+      continue;
+    }
 
     const tierLabels: Record<string, string> = {
       core: "🟢 CORE SKILLS (Free/All Tiers)",
@@ -479,11 +513,12 @@ function main() {
 
       // Show key frontmatter
       if (result.frontmatter) {
-        const emoji =
-          result.frontmatter.metadata?.openclaw?.emoji ||
-          result.frontmatter.metadata?.clawdbot?.emoji ||
-          "—";
-        const name = result.frontmatter.name || "—";
+        const fm = result.frontmatter;
+        const metadata = fm.metadata as Record<string, unknown> | undefined;
+        const openclaw = metadata?.openclaw as Record<string, unknown> | undefined;
+        const clawdbot = metadata?.clawdbot as Record<string, unknown> | undefined;
+        const emoji = (openclaw?.emoji as string) || (clawdbot?.emoji as string) || "—";
+        const name = (fm.name as string) || "—";
         console.log(`   📋 Frontmatter: name="${name}", emoji=${emoji}`);
       }
     }

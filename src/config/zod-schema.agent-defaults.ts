@@ -2,7 +2,6 @@ import { z } from "zod";
 import {
   HeartbeatSchema,
   MemorySearchSchema,
-  SandboxBrowserSchema,
   SandboxDockerSchema,
   SandboxPruneSchema,
 } from "./zod-schema.agent-runtime.js";
@@ -165,7 +164,6 @@ export const AgentDefaultsSchema = z
         perSession: z.boolean().optional(),
         workspaceRoot: z.string().optional(),
         docker: SandboxDockerSchema,
-        browser: SandboxBrowserSchema,
         prune: SandboxPruneSchema,
       })
       .strict()

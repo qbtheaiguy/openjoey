@@ -94,7 +94,9 @@ export async function postAnalysisHook(telegramId: number): Promise<string | nul
   try {
     await db.recordChartUsage(telegramId);
     const user = await db.getUser(telegramId);
-    if (!user) return null;
+    if (!user) {
+      return null;
+    }
 
     // Free tier users get a FOMO message after their chart
     if (user.tier === "free") {
@@ -133,7 +135,9 @@ export function getConversionTrigger(
   daysSinceTrial: number,
   chartsUsedTotal: number,
 ): string | null {
-  if (tier !== "free") return null;
+  if (tier !== "free") {
+    return null;
+  }
 
   if (daysSinceTrial >= 7) {
     return (

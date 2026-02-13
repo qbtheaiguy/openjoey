@@ -240,7 +240,7 @@ export function registerExecApprovalsCli(program: Command) {
   const approvals = program
     .command("approvals")
     .alias("exec-approvals")
-    .description("Manage exec approvals (gateway or node host)")
+    .description("Manage exec approvals (gateway or paired nodes)")
     .addHelpText(
       "after",
       () =>

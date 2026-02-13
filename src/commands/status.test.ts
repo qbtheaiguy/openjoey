@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi, type Mock } from "vitest";
 
 let previousProfile: string | undefined;
 
@@ -264,19 +264,6 @@ vi.mock("../daemon/service.js", () => ({
     }),
   }),
 }));
-vi.mock("../daemon/node-service.js", () => ({
-  resolveNodeService: () => ({
-    label: "LaunchAgent",
-    loadedText: "loaded",
-    notLoadedText: "not loaded",
-    isLoaded: async () => true,
-    readRuntime: async () => ({ status: "running", pid: 4321 }),
-    readCommand: async () => ({
-      programArguments: ["node", "dist/entry.js", "node-host"],
-      sourcePath: "/tmp/Library/LaunchAgents/bot.molt.node.plist",
-    }),
-  }),
-}));
 vi.mock("../security/audit.js", () => ({
   runSecurityAudit: mocks.runSecurityAudit,
 }));
@@ -292,7 +279,7 @@ const runtime = {
 describe("statusCommand", () => {
   it("prints JSON when requested", async () => {
     await statusCommand({ json: true }, runtime as never);
-    const payload = JSON.parse((runtime.log as vi.Mock).mock.calls[0][0]);
+    const payload = JSON.parse((runtime.log as Mock).mock.calls[0][0]);
     expect(payload.linkChannel.linked).toBe(true);
     expect(payload.memory.agentId).toBe("main");
     expect(payload.memoryPlugin.enabled).toBe(true);
@@ -308,14 +295,13 @@ describe("statusCommand", () => {
     expect(payload.securityAudit.summary.critical).toBe(1);
     expect(payload.securityAudit.summary.warn).toBe(1);
     expect(payload.gatewayService.label).toBe("LaunchAgent");
-    expect(payload.nodeService.label).toBe("LaunchAgent");
   });
 
   it("prints formatted lines otherwise", async () => {
-    (runtime.log as vi.Mock).mockClear();
+    (runtime.log as Mock).mockClear();
     await statusCommand({}, runtime as never);
-    const logs = (runtime.log as vi.Mock).mock.calls.map((c) => String(c[0]));
-    expect(logs.some((l) => l.includes("OpenClaw status"))).toBe(true);
+    const logs: string[] = (runtime.log as Mock).mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(logs.some((l: string) => l.includes("OpenClaw status"))).toBe(true);
     expect(logs.some((l) => l.includes("Overview"))).toBe(true);
     expect(logs.some((l) => l.includes("Security audit"))).toBe(true);
     expect(logs.some((l) => l.includes("Summary:"))).toBe(true);
@@ -334,7 +320,7 @@ describe("statusCommand", () => {
     expect(logs.some((l) => l.includes("Next steps:"))).toBe(true);
     expect(
       logs.some(
-        (l) =>
+        (l: string) =>
           l.includes("openclaw status --all") ||
           l.includes("openclaw --profile isolated status --all") ||
           l.includes("openclaw status --all") ||
@@ -358,10 +344,10 @@ describe("statusCommand", () => {
         presence: [],
         configSnapshot: null,
       });
-      (runtime.log as vi.Mock).mockClear();
+      (runtime.log as Mock).mockClear();
       await statusCommand({}, runtime as never);
-      const logs = (runtime.log as vi.Mock).mock.calls.map((c) => String(c[0]));
-      expect(logs.some((l) => l.includes("auth token"))).toBe(true);
+      const logs: string[] = (runtime.log as Mock).mock.calls.map((c: unknown[]) => String(c[0]));
+      expect(logs.some((l: string) => l.includes("auth token"))).toBe(true);
     } finally {
       if (prevToken === undefined) {
         delete process.env.OPENCLAW_GATEWAY_TOKEN;
@@ -406,9 +392,9 @@ describe("statusCommand", () => {
       },
     });
 
-    (runtime.log as vi.Mock).mockClear();
+    (runtime.log as Mock).mockClear();
     await statusCommand({}, runtime as never);
-    const logs = (runtime.log as vi.Mock).mock.calls.map((c) => String(c[0]));
+    const logs: string[] = (runtime.log as Mock).mock.calls.map((c: unknown[]) => String(c[0]));
     expect(logs.join("\n")).toMatch(/Signal/i);
     expect(logs.join("\n")).toMatch(/iMessage/i);
     expect(logs.join("\n")).toMatch(/gateway:/i);
@@ -460,7 +446,7 @@ describe("statusCommand", () => {
     });
 
     await statusCommand({ json: true }, runtime as never);
-    const payload = JSON.parse((runtime.log as vi.Mock).mock.calls.at(-1)?.[0]);
+    const payload = JSON.parse((runtime.log as Mock).mock.calls.at(-1)?.[0]);
     expect(payload.sessions.count).toBe(2);
     expect(payload.sessions.paths.length).toBe(2);
     expect(

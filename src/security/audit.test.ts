@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
 import type { OpenClawConfig } from "../config/config.js";
 import { discordPlugin } from "../../extensions/discord/src/channel.js";
-import { slackPlugin } from "../../extensions/slack/src/channel.js";
 import { telegramPlugin } from "../../extensions/telegram/src/channel.js";
 import { runSecurityAudit } from "./audit.js";
 
@@ -31,7 +30,6 @@ describe("security audit", () => {
       channels: { whatsapp: { groupPolicy: "open" }, telegram: { groupPolicy: "allowlist" } },
       tools: { elevated: { enabled: true, allowFrom: { whatsapp: ["+1"] } } },
       hooks: { enabled: true },
-      browser: { enabled: true },
     };
 
     const res = await runSecurityAudit({
@@ -221,7 +219,6 @@ describe("security audit", () => {
           fetch: { enabled: true },
         },
       },
-      browser: { enabled: true },
     };
 
     const res = await runSecurityAudit({
@@ -235,7 +232,6 @@ describe("security audit", () => {
     expect(finding?.detail).toContain("mistral-8b");
     expect(finding?.detail).toContain("web_search");
     expect(finding?.detail).toContain("web_fetch");
-    expect(finding?.detail).toContain("browser");
   });
 
   it("treats small models as safe when sandbox is on and web tools are disabled", async () => {
@@ -247,7 +243,6 @@ describe("security audit", () => {
           fetch: { enabled: false },
         },
       },
-      browser: { enabled: false },
     };
 
     const res = await runSecurityAudit({
@@ -283,28 +278,6 @@ describe("security audit", () => {
           checkId: "tools.elevated.allowFrom.whatsapp.wildcard",
           severity: "critical",
         }),
-      ]),
-    );
-  });
-
-  it("warns when remote CDP uses HTTP", async () => {
-    const cfg: OpenClawConfig = {
-      browser: {
-        profiles: {
-          remote: { cdpUrl: "http://example.com:9222", color: "#0066CC" },
-        },
-      },
-    };
-
-    const res = await runSecurityAudit({
-      config: cfg,
-      includeFilesystem: false,
-      includeChannelSecurity: false,
-    });
-
-    expect(res.findings).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ checkId: "browser.remote_cdp_http", severity: "warn" }),
       ]),
     );
   });
@@ -534,91 +507,6 @@ describe("security audit", () => {
         expect.arrayContaining([
           expect.objectContaining({
             checkId: "channels.discord.commands.native.unrestricted",
-            severity: "critical",
-          }),
-        ]),
-      );
-    } finally {
-      if (prevStateDir == null) {
-        delete process.env.OPENCLAW_STATE_DIR;
-      } else {
-        process.env.OPENCLAW_STATE_DIR = prevStateDir;
-      }
-    }
-  });
-
-  it("flags Slack slash commands without a channel users allowlist", async () => {
-    const prevStateDir = process.env.OPENCLAW_STATE_DIR;
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-security-audit-slack-"));
-    process.env.OPENCLAW_STATE_DIR = tmp;
-    await fs.mkdir(path.join(tmp, "credentials"), { recursive: true, mode: 0o700 });
-    try {
-      const cfg: OpenClawConfig = {
-        channels: {
-          slack: {
-            enabled: true,
-            botToken: "xoxb-test",
-            appToken: "xapp-test",
-            groupPolicy: "open",
-            slashCommand: { enabled: true },
-          },
-        },
-      };
-
-      const res = await runSecurityAudit({
-        config: cfg,
-        includeFilesystem: false,
-        includeChannelSecurity: true,
-        plugins: [slackPlugin],
-      });
-
-      expect(res.findings).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            checkId: "channels.slack.commands.slash.no_allowlists",
-            severity: "warn",
-          }),
-        ]),
-      );
-    } finally {
-      if (prevStateDir == null) {
-        delete process.env.OPENCLAW_STATE_DIR;
-      } else {
-        process.env.OPENCLAW_STATE_DIR = prevStateDir;
-      }
-    }
-  });
-
-  it("flags Slack slash commands when access-group enforcement is disabled", async () => {
-    const prevStateDir = process.env.OPENCLAW_STATE_DIR;
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-security-audit-slack-open-"));
-    process.env.OPENCLAW_STATE_DIR = tmp;
-    await fs.mkdir(path.join(tmp, "credentials"), { recursive: true, mode: 0o700 });
-    try {
-      const cfg: OpenClawConfig = {
-        commands: { useAccessGroups: false },
-        channels: {
-          slack: {
-            enabled: true,
-            botToken: "xoxb-test",
-            appToken: "xapp-test",
-            groupPolicy: "open",
-            slashCommand: { enabled: true },
-          },
-        },
-      };
-
-      const res = await runSecurityAudit({
-        config: cfg,
-        includeFilesystem: false,
-        includeChannelSecurity: true,
-        plugins: [slackPlugin],
-      });
-
-      expect(res.findings).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            checkId: "channels.slack.commands.slash.useAccessGroups_off",
             severity: "critical",
           }),
         ]),

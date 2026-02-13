@@ -4,12 +4,11 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChannelPlugin } from "../../channels/plugins/types.js";
 import type { OpenClawConfig } from "../../config/config.js";
-import { slackPlugin } from "../../../extensions/slack/src/channel.js";
 import { telegramPlugin } from "../../../extensions/telegram/src/channel.js";
 import { whatsappPlugin } from "../../../extensions/whatsapp/src/channel.js";
 import { jsonResult } from "../../agents/tools/common.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
-import { createIMessageTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
+import { createTelegramTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
 import { loadWebMedia } from "../../web/media.js";
 import { runMessageAction } from "./message-action-runner.js";
 
@@ -21,11 +20,10 @@ vi.mock("../../web/media.js", async () => {
   };
 });
 
-const slackConfig = {
+const telegramConfig = {
   channels: {
-    slack: {
-      botToken: "xoxb-test",
-      appToken: "xapp-test",
+    telegram: {
+      botToken: "123:abc-test",
     },
   },
 } as OpenClawConfig;
@@ -41,20 +39,13 @@ const whatsappConfig = {
 describe("runMessageAction context isolation", () => {
   beforeEach(async () => {
     const { createPluginRuntime } = await import("../../plugins/runtime/index.js");
-    const { setSlackRuntime } = await import("../../../extensions/slack/src/runtime.js");
     const { setTelegramRuntime } = await import("../../../extensions/telegram/src/runtime.js");
     const { setWhatsAppRuntime } = await import("../../../extensions/whatsapp/src/runtime.js");
     const runtime = createPluginRuntime();
-    setSlackRuntime(runtime);
     setTelegramRuntime(runtime);
     setWhatsAppRuntime(runtime);
     setActivePluginRegistry(
       createTestRegistry([
-        {
-          pluginId: "slack",
-          source: "test",
-          plugin: slackPlugin,
-        },
         {
           pluginId: "whatsapp",
           source: "test",
@@ -66,9 +57,9 @@ describe("runMessageAction context isolation", () => {
           plugin: telegramPlugin,
         },
         {
-          pluginId: "imessage",
+          pluginId: "telegram-alt",
           source: "test",
-          plugin: createIMessageTestPlugin(),
+          plugin: createTelegramTestPlugin(),
         },
       ]),
     );
@@ -80,14 +71,14 @@ describe("runMessageAction context isolation", () => {
 
   it("allows send when target matches current channel", async () => {
     const result = await runMessageAction({
-      cfg: slackConfig,
+      cfg: telegramConfig,
       action: "send",
       params: {
-        channel: "slack",
-        target: "#C12345678",
+        channel: "telegram",
+        target: "12345678",
         message: "hi",
       },
-      toolContext: { currentChannelId: "C12345678" },
+      toolContext: { currentChannelId: "12345678" },
       dryRun: true,
     });
 
@@ -96,11 +87,11 @@ describe("runMessageAction context isolation", () => {
 
   it("accepts legacy to parameter for send", async () => {
     const result = await runMessageAction({
-      cfg: slackConfig,
+      cfg: telegramConfig,
       action: "send",
       params: {
-        channel: "slack",
-        to: "#C12345678",
+        channel: "telegram",
+        to: "12345678",
         message: "hi",
       },
       dryRun: true,
@@ -111,13 +102,13 @@ describe("runMessageAction context isolation", () => {
 
   it("defaults to current channel when target is omitted", async () => {
     const result = await runMessageAction({
-      cfg: slackConfig,
+      cfg: telegramConfig,
       action: "send",
       params: {
-        channel: "slack",
+        channel: "telegram",
         message: "hi",
       },
-      toolContext: { currentChannelId: "C12345678" },
+      toolContext: { currentChannelId: "12345678" },
       dryRun: true,
     });
 
@@ -126,14 +117,14 @@ describe("runMessageAction context isolation", () => {
 
   it("allows media-only send when target matches current channel", async () => {
     const result = await runMessageAction({
-      cfg: slackConfig,
+      cfg: telegramConfig,
       action: "send",
       params: {
-        channel: "slack",
-        target: "#C12345678",
+        channel: "telegram",
+        target: "12345678",
         media: "https://example.com/note.ogg",
       },
-      toolContext: { currentChannelId: "C12345678" },
+      toolContext: { currentChannelId: "12345678" },
       dryRun: true,
     });
 
@@ -143,13 +134,13 @@ describe("runMessageAction context isolation", () => {
   it("requires message when no media hint is provided", async () => {
     await expect(
       runMessageAction({
-        cfg: slackConfig,
+        cfg: telegramConfig,
         action: "send",
         params: {
-          channel: "slack",
-          target: "#C12345678",
+          channel: "telegram",
+          target: "12345678",
         },
-        toolContext: { currentChannelId: "C12345678" },
+        toolContext: { currentChannelId: "12345678" },
         dryRun: true,
       }),
     ).rejects.toThrow(/message required/i);
@@ -157,14 +148,14 @@ describe("runMessageAction context isolation", () => {
 
   it("blocks send when target differs from current channel", async () => {
     const result = await runMessageAction({
-      cfg: slackConfig,
+      cfg: telegramConfig,
       action: "send",
       params: {
-        channel: "slack",
+        channel: "telegram",
         target: "channel:C99999999",
         message: "hi",
       },
-      toolContext: { currentChannelId: "C12345678", currentChannelProvider: "slack" },
+      toolContext: { currentChannelId: "12345678", currentChannelProvider: "telegram" },
       dryRun: true,
     });
 
@@ -173,14 +164,14 @@ describe("runMessageAction context isolation", () => {
 
   it("blocks thread-reply when channelId differs from current channel", async () => {
     const result = await runMessageAction({
-      cfg: slackConfig,
+      cfg: telegramConfig,
       action: "thread-reply",
       params: {
-        channel: "slack",
-        target: "C99999999",
+        channel: "telegram",
+        target: "telegram:@ops",
         message: "hi",
       },
-      toolContext: { currentChannelId: "C12345678", currentChannelProvider: "slack" },
+      toolContext: { currentChannelId: "12345678", currentChannelProvider: "telegram" },
       dryRun: true,
     });
 
@@ -219,50 +210,14 @@ describe("runMessageAction context isolation", () => {
     expect(result.kind).toBe("send");
   });
 
-  it("allows iMessage send when target matches current handle", async () => {
-    const result = await runMessageAction({
-      cfg: whatsappConfig,
-      action: "send",
-      params: {
-        channel: "imessage",
-        target: "imessage:+15551234567",
-        message: "hi",
-      },
-      toolContext: { currentChannelId: "imessage:+15551234567" },
-      dryRun: true,
-    });
-
-    expect(result.kind).toBe("send");
-  });
-
-  it("blocks iMessage send when target differs from current handle", async () => {
-    const result = await runMessageAction({
-      cfg: whatsappConfig,
-      action: "send",
-      params: {
-        channel: "imessage",
-        target: "imessage:+15551230000",
-        message: "hi",
-      },
-      toolContext: {
-        currentChannelId: "imessage:+15551234567",
-        currentChannelProvider: "imessage",
-      },
-      dryRun: true,
-    });
-
-    expect(result.kind).toBe("send");
-  });
-
   it("infers channel + target from tool context when missing", async () => {
     const multiConfig = {
       channels: {
-        slack: {
-          botToken: "xoxb-test",
-          appToken: "xapp-test",
-        },
         telegram: {
-          token: "tg-test",
+          botToken: "123:abc-test",
+        },
+        discord: {
+          token: "discord-test",
         },
       },
     } as OpenClawConfig;
@@ -273,25 +228,25 @@ describe("runMessageAction context isolation", () => {
       params: {
         message: "hi",
       },
-      toolContext: { currentChannelId: "C12345678", currentChannelProvider: "slack" },
+      toolContext: { currentChannelId: "12345678", currentChannelProvider: "telegram" },
       dryRun: true,
     });
 
     expect(result.kind).toBe("send");
-    expect(result.channel).toBe("slack");
+    expect(result.channel).toBe("telegram");
   });
 
   it("blocks cross-provider sends by default", async () => {
     await expect(
       runMessageAction({
-        cfg: slackConfig,
+        cfg: telegramConfig,
         action: "send",
         params: {
           channel: "telegram",
           target: "telegram:@ops",
           message: "hi",
         },
-        toolContext: { currentChannelId: "C12345678", currentChannelProvider: "slack" },
+        toolContext: { currentChannelId: "12345678", currentChannelProvider: "whatsapp" },
         dryRun: true,
       }),
     ).rejects.toThrow(/Cross-context messaging denied/);
@@ -299,7 +254,7 @@ describe("runMessageAction context isolation", () => {
 
   it("blocks same-provider cross-context when disabled", async () => {
     const cfg = {
-      ...slackConfig,
+      ...telegramConfig,
       tools: {
         message: {
           crossContext: {
@@ -314,11 +269,11 @@ describe("runMessageAction context isolation", () => {
         cfg,
         action: "send",
         params: {
-          channel: "slack",
+          channel: "telegram",
           target: "channel:C99999999",
           message: "hi",
         },
-        toolContext: { currentChannelId: "C12345678", currentChannelProvider: "slack" },
+        toolContext: { currentChannelId: "12345678", currentChannelProvider: "telegram" },
         dryRun: true,
       }),
     ).rejects.toThrow(/Cross-context messaging denied/);
@@ -330,11 +285,11 @@ describe("runMessageAction context isolation", () => {
 
     await expect(
       runMessageAction({
-        cfg: slackConfig,
+        cfg: telegramConfig,
         action: "send",
         params: {
-          channel: "slack",
-          target: "#C12345678",
+          channel: "telegram",
+          target: "12345678",
           message: "hi",
         },
         dryRun: true,
@@ -349,11 +304,11 @@ describe("runMessageAction context isolation", () => {
 
     await expect(
       runMessageAction({
-        cfg: slackConfig,
+        cfg: telegramConfig,
         action: "broadcast",
         params: {
-          targets: ["channel:C12345678"],
-          channel: "slack",
+          targets: ["12345678"],
+          channel: "telegram",
           message: "hi",
         },
         dryRun: true,
@@ -485,15 +440,15 @@ describe("runMessageAction sendAttachment hydration", () => {
 describe("runMessageAction sandboxed media validation", () => {
   beforeEach(async () => {
     const { createPluginRuntime } = await import("../../plugins/runtime/index.js");
-    const { setSlackRuntime } = await import("../../../extensions/slack/src/runtime.js");
+    const { setTelegramRuntime } = await import("../../../extensions/telegram/src/runtime.js");
     const runtime = createPluginRuntime();
-    setSlackRuntime(runtime);
+    setTelegramRuntime(runtime);
     setActivePluginRegistry(
       createTestRegistry([
         {
-          pluginId: "slack",
+          pluginId: "telegram",
           source: "test",
-          plugin: slackPlugin,
+          plugin: telegramPlugin,
         },
       ]),
     );
@@ -508,11 +463,11 @@ describe("runMessageAction sandboxed media validation", () => {
     try {
       await expect(
         runMessageAction({
-          cfg: slackConfig,
+          cfg: telegramConfig,
           action: "send",
           params: {
-            channel: "slack",
-            target: "#C12345678",
+            channel: "telegram",
+            target: "12345678",
             media: "/etc/passwd",
             message: "",
           },
@@ -530,11 +485,11 @@ describe("runMessageAction sandboxed media validation", () => {
     try {
       await expect(
         runMessageAction({
-          cfg: slackConfig,
+          cfg: telegramConfig,
           action: "send",
           params: {
-            channel: "slack",
-            target: "#C12345678",
+            channel: "telegram",
+            target: "12345678",
             media: "file:///etc/passwd",
             message: "",
           },
@@ -551,11 +506,11 @@ describe("runMessageAction sandboxed media validation", () => {
     const sandboxDir = await fs.mkdtemp(path.join(os.tmpdir(), "msg-sandbox-"));
     try {
       const result = await runMessageAction({
-        cfg: slackConfig,
+        cfg: telegramConfig,
         action: "send",
         params: {
-          channel: "slack",
-          target: "#C12345678",
+          channel: "telegram",
+          target: "12345678",
           media: "./data/file.txt",
           message: "",
         },
@@ -574,11 +529,11 @@ describe("runMessageAction sandboxed media validation", () => {
     const sandboxDir = await fs.mkdtemp(path.join(os.tmpdir(), "msg-sandbox-"));
     try {
       const result = await runMessageAction({
-        cfg: slackConfig,
+        cfg: telegramConfig,
         action: "send",
         params: {
-          channel: "slack",
-          target: "#C12345678",
+          channel: "telegram",
+          target: "12345678",
           message: "Hello\nMEDIA: ./data/note.ogg",
         },
         sandboxRoot: sandboxDir,
@@ -595,11 +550,11 @@ describe("runMessageAction sandboxed media validation", () => {
   it("rejects data URLs in media params", async () => {
     await expect(
       runMessageAction({
-        cfg: slackConfig,
+        cfg: telegramConfig,
         action: "send",
         params: {
-          channel: "slack",
-          target: "#C12345678",
+          channel: "telegram",
+          target: "12345678",
           media: "data:image/png;base64,abcd",
           message: "",
         },

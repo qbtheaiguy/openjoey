@@ -44,29 +44,6 @@ export type SandboxDockerSettings = {
   binds?: string[];
 };
 
-export type SandboxBrowserSettings = {
-  enabled?: boolean;
-  image?: string;
-  containerPrefix?: string;
-  cdpPort?: number;
-  vncPort?: number;
-  noVncPort?: number;
-  headless?: boolean;
-  enableNoVnc?: boolean;
-  /**
-   * Allow sandboxed sessions to target the host browser control server.
-   * Default: false.
-   */
-  allowHostControl?: boolean;
-  /**
-   * When true (default), sandboxed browser control will try to start/reattach to
-   * the sandbox browser container when a tool call needs it.
-   */
-  autoStart?: boolean;
-  /** Max time to wait for CDP to become reachable after auto-start (ms). */
-  autoStartTimeoutMs?: number;
-};
-
 export type SandboxPruneSettings = {
   /** Prune if idle for more than N hours (0 disables). */
   idleHours?: number;

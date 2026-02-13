@@ -5,11 +5,7 @@ import type {
   HumanDelayConfig,
   TypingMode,
 } from "./types.base.js";
-import type {
-  SandboxBrowserSettings,
-  SandboxDockerSettings,
-  SandboxPruneSettings,
-} from "./types.sandbox.js";
+import type { SandboxDockerSettings, SandboxPruneSettings } from "./types.sandbox.js";
 import type { MemorySearchConfig } from "./types.tools.js";
 
 export type AgentModelEntryConfig = {
@@ -236,8 +232,7 @@ export type AgentDefaultsConfig = {
     workspaceRoot?: string;
     /** Docker-specific sandbox settings. */
     docker?: SandboxDockerSettings;
-    /** Optional sandboxed browser settings. */
-    browser?: SandboxBrowserSettings;
+
     /** Auto-prune sandbox containers. */
     prune?: SandboxPruneSettings;
   };

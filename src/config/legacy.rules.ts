@@ -13,22 +13,7 @@ export const LEGACY_CONFIG_RULES: LegacyConfigRule[] = [
     path: ["discord"],
     message: "discord config moved to channels.discord (auto-migrated on load).",
   },
-  {
-    path: ["slack"],
-    message: "slack config moved to channels.slack (auto-migrated on load).",
-  },
-  {
-    path: ["signal"],
-    message: "signal config moved to channels.signal (auto-migrated on load).",
-  },
-  {
-    path: ["imessage"],
-    message: "imessage config moved to channels.imessage (auto-migrated on load).",
-  },
-  {
-    path: ["msteams"],
-    message: "msteams config moved to channels.msteams (auto-migrated on load).",
-  },
+  // OpenJoey: forbidden channels removed (Rule 2)
   {
     path: ["routing", "allowFrom"],
     message:
@@ -120,10 +105,7 @@ export const LEGACY_CONFIG_RULES: LegacyConfigRule[] = [
     message:
       "agent.imageModelFallbacks was replaced by agents.defaults.imageModel.fallbacks (auto-migrated on load).",
   },
-  {
-    path: ["messages", "tts", "enabled"],
-    message: "messages.tts.enabled was replaced by messages.tts.auto (auto-migrated on load).",
-  },
+
   {
     path: ["gateway", "token"],
     message: "gateway.token is ignored; use gateway.auth.token instead (auto-migrated on load).",

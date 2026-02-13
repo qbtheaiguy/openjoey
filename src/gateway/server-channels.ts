@@ -6,6 +6,7 @@ import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
 import { type ChannelId, getChannelPlugin, listChannelPlugins } from "../channels/plugins/index.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { resetDirectoryCache } from "../infra/outbound/target-resolver.js";
+import { getOpenJoeyChannelsAllowlist } from "../openjoey/config.js";
 import { DEFAULT_ACCOUNT_ID } from "../routing/session-key.js";
 
 export type ChannelRuntimeSnapshot = {
@@ -230,7 +231,12 @@ export function createChannelManager(opts: ChannelManagerOptions): ChannelManage
   };
 
   const startChannels = async () => {
-    for (const plugin of listChannelPlugins()) {
+    const cfg = loadConfig();
+    const allowlist = getOpenJoeyChannelsAllowlist(cfg);
+    const plugins = allowlist
+      ? listChannelPlugins().filter((p) => allowlist.includes(p.id.toLowerCase()))
+      : listChannelPlugins();
+    for (const plugin of plugins) {
       await startChannel(plugin.id);
     }
   };
@@ -261,9 +267,13 @@ export function createChannelManager(opts: ChannelManagerOptions): ChannelManage
 
   const getRuntimeSnapshot = (): ChannelRuntimeSnapshot => {
     const cfg = loadConfig();
+    const allowlist = getOpenJoeyChannelsAllowlist(cfg);
+    const plugins = allowlist
+      ? listChannelPlugins().filter((p) => allowlist.includes(p.id.toLowerCase()))
+      : listChannelPlugins();
     const channels: ChannelRuntimeSnapshot["channels"] = {};
     const channelAccounts: ChannelRuntimeSnapshot["channelAccounts"] = {};
-    for (const plugin of listChannelPlugins()) {
+    for (const plugin of plugins) {
       const store = getStore(plugin.id);
       const accountIds = plugin.config.listAccountIds(cfg);
       const defaultAccountId = resolveChannelDefaultAccountId({

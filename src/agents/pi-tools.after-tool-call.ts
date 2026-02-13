@@ -1,3 +1,4 @@
+import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import type { AnyAgentTool } from "./tools/common.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
@@ -62,7 +63,7 @@ export function wrapToolWithAfterToolCallHook(tool: AnyAgentTool, ctx?: HookCont
     ...tool,
     execute: async (toolCallId, params, signal, onUpdate) => {
       const start = Date.now();
-      let result: any;
+      let result: AgentToolResult<unknown> | undefined;
       let error: string | undefined;
 
       try {

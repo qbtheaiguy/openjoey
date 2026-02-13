@@ -34,11 +34,6 @@ vi.mock("../agents/tools/discord-actions.js", () => ({
   handleDiscordAction: (...args: unknown[]) => handleDiscordAction(...args),
 }));
 
-const handleSlackAction = vi.fn(async () => ({ details: { ok: true } }));
-vi.mock("../agents/tools/slack-actions.js", () => ({
-  handleSlackAction: (...args: unknown[]) => handleSlackAction(...args),
-}));
-
 const handleTelegramAction = vi.fn(async () => ({ details: { ok: true } }));
 vi.mock("../agents/tools/telegram-actions.js", () => ({
   handleTelegramAction: (...args: unknown[]) => handleTelegramAction(...args),
@@ -66,7 +61,6 @@ beforeEach(async () => {
   callGatewayMock.mockReset();
   webAuthExists.mockReset().mockResolvedValue(false);
   handleDiscordAction.mockReset();
-  handleSlackAction.mockReset();
   handleTelegramAction.mockReset();
   handleWhatsAppAction.mockReset();
 });

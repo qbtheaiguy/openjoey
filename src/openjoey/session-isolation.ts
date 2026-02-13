@@ -37,7 +37,9 @@ export function deriveSessionKey(telegramId: number): string {
  */
 export function isAdmin(telegramId: number): boolean {
   const raw = process.env.OPENJOEY_ADMIN_TELEGRAM_IDS?.trim();
-  if (!raw) return false;
+  if (!raw) {
+    return false;
+  }
   const ids = raw.split(",").map((s) => parseInt(s.trim(), 10));
   return ids.includes(telegramId);
 }
@@ -78,7 +80,9 @@ export function getSubscriberAllowedSkills(): string[] {
  * Subscriber gets trading/research/chat only.
  */
 export function getAllowedSkillsForRole(role: OpenJoeyRole): string[] | undefined {
-  if (role === "admin") return undefined;
+  if (role === "admin") {
+    return undefined;
+  }
   return getSubscriberAllowedSkills();
 }
 

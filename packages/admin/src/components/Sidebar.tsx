@@ -8,12 +8,14 @@ import {
   LayoutDashboard,
   ShieldCheck,
   CreditCard,
+  Activity,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const MENU_ITEMS = [
   { name: "Dashboard", icon: LayoutDashboard, href: "/" },
+  { name: "System Monitoring", icon: Activity, href: "/monitoring" },
   { name: "Users", icon: Users, href: "/users" },
   { name: "Referrals", icon: BarChart3, href: "/referrals" },
   { name: "Skill Logs", icon: History, href: "/logs" },

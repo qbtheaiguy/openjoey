@@ -43,7 +43,9 @@ async function main(): Promise<void> {
       batch.map(async ({ telegram_id, id }) => {
         try {
           const user = await db.getUserById(id);
-          if (!user) return;
+          if (!user) {
+            return;
+          }
           const { text, parse_mode } = await buildBriefForUser(db, user, market, news);
           const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
             method: "POST",
@@ -64,8 +66,11 @@ async function main(): Promise<void> {
           } else {
             const msg = data.description ?? `code ${data.error_code ?? "?"}`;
             console.error(`[${telegram_id}] Telegram: ${msg}`);
-            if (data.error_code === 403) blocked += 1;
-            else failed += 1;
+            if (data.error_code === 403) {
+              blocked += 1;
+            } else {
+              failed += 1;
+            }
           }
         } catch (err) {
           failed += 1;

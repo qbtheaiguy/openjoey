@@ -4,15 +4,7 @@ import { requireActivePluginRegistry } from "../plugins/runtime.js";
 
 // Channel docking: add new core channels here (order + meta + aliases), then
 // register the plugin in its extension entrypoint and keep protocol IDs in sync.
-export const CHAT_CHANNEL_ORDER = [
-  "telegram",
-  "whatsapp",
-  "discord",
-  "googlechat",
-  "slack",
-  "signal",
-  "imessage",
-] as const;
+export const CHAT_CHANNEL_ORDER = ["telegram", "whatsapp", "discord"] as const;
 
 export type ChatChannelId = (typeof CHAT_CHANNEL_ORDER)[number];
 
@@ -58,52 +50,15 @@ const CHAT_CHANNEL_META: Record<ChatChannelId, ChannelMeta> = {
     blurb: "very well supported right now.",
     systemImage: "bubble.left.and.bubble.right",
   },
-  googlechat: {
-    id: "googlechat",
-    label: "Google Chat",
-    selectionLabel: "Google Chat (Chat API)",
-    detailLabel: "Google Chat",
-    docsPath: "/channels/googlechat",
-    docsLabel: "googlechat",
-    blurb: "Google Workspace Chat app with HTTP webhook.",
-    systemImage: "message.badge",
-  },
-  slack: {
-    id: "slack",
-    label: "Slack",
-    selectionLabel: "Slack (Socket Mode)",
-    detailLabel: "Slack Bot",
-    docsPath: "/channels/slack",
-    docsLabel: "slack",
-    blurb: "supported (Socket Mode).",
-    systemImage: "number",
-  },
-  signal: {
-    id: "signal",
-    label: "Signal",
-    selectionLabel: "Signal (signal-cli)",
-    detailLabel: "Signal REST",
-    docsPath: "/channels/signal",
-    docsLabel: "signal",
-    blurb: 'signal-cli linked device; more setup (David Reagans: "Hop on Discord.").',
-    systemImage: "antenna.radiowaves.left.and.right",
-  },
-  imessage: {
-    id: "imessage",
-    label: "iMessage",
-    selectionLabel: "iMessage (imsg)",
-    detailLabel: "iMessage",
-    docsPath: "/channels/imessage",
-    docsLabel: "imessage",
-    blurb: "this is still a work in progress.",
-    systemImage: "message.fill",
-  },
+  // OpenJoey: forbidden channels removed (Rule 2)
 };
 
 export const CHAT_CHANNEL_ALIASES: Record<string, ChatChannelId> = {
-  imsg: "imessage",
-  "google-chat": "googlechat",
-  gchat: "googlechat",
+  tg: "telegram",
+  wa: "whatsapp",
+  wp: "whatsapp",
+  dc: "discord",
+  // OpenJoey: forbidden channels removed (Rule 2)
 };
 
 const normalizeChannelKey = (raw?: string | null): string | undefined => {
@@ -143,6 +98,10 @@ export function normalizeChannelId(raw?: string | null): ChatChannelId | null {
 // Keep this light: we do not import channel plugins here (those are "heavy" and can pull in
 // monitors, web login, etc). The plugin registry must be initialized first.
 export function normalizeAnyChannelId(raw?: string | null): ChannelId | null {
+  const core = normalizeChatChannelId(raw);
+  if (core) {
+    return core;
+  }
   const key = normalizeChannelKey(raw);
   if (!key) {
     return null;

@@ -95,7 +95,6 @@ export function registerSandboxCli(program: Command) {
       createRunner((opts) =>
         sandboxListCommand(
           {
-            browser: Boolean(opts.browser),
             json: Boolean(opts.json),
           },
           defaultRuntime,
@@ -139,7 +138,6 @@ export function registerSandboxCli(program: Command) {
             all: Boolean(opts.all),
             session: opts.session as string | undefined,
             agent: opts.agent as string | undefined,
-            browser: Boolean(opts.browser),
             force: Boolean(opts.force),
           },
           defaultRuntime,

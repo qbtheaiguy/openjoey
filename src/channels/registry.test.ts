@@ -7,10 +7,15 @@ import {
 
 describe("channel registry", () => {
   it("normalizes aliases", () => {
-    expect(normalizeChatChannelId("imsg")).toBe("imessage");
-    expect(normalizeChatChannelId("gchat")).toBe("googlechat");
-    expect(normalizeChatChannelId("google-chat")).toBe("googlechat");
+    // OpenJoey: forbidden channels removed (Rule 2)
+    // Only telegram, whatsapp, discord are allowed
+    expect(normalizeChatChannelId("tg")).toBe("telegram");
+    expect(normalizeChatChannelId("telegram")).toBe("telegram");
+    expect(normalizeChatChannelId("whatsapp")).toBe("whatsapp");
+    expect(normalizeChatChannelId("discord")).toBe("discord");
     expect(normalizeChatChannelId("web")).toBeNull();
+    expect(normalizeChatChannelId("imsg")).toBeNull();
+    expect(normalizeChatChannelId("slack")).toBeNull();
   });
 
   it("keeps Telegram first in the default order", () => {

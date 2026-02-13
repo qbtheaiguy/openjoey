@@ -1,11 +1,7 @@
 import type { AgentDefaultsConfig } from "./types.agent-defaults.js";
 import type { HumanDelayConfig, IdentityConfig } from "./types.base.js";
 import type { GroupChatConfig } from "./types.messages.js";
-import type {
-  SandboxBrowserSettings,
-  SandboxDockerSettings,
-  SandboxPruneSettings,
-} from "./types.sandbox.js";
+import type { SandboxDockerSettings, SandboxPruneSettings } from "./types.sandbox.js";
 import type { AgentToolsConfig, MemorySearchConfig } from "./types.tools.js";
 
 export type AgentModelConfig =
@@ -56,8 +52,7 @@ export type AgentConfig = {
     workspaceRoot?: string;
     /** Docker-specific sandbox overrides for this agent. */
     docker?: SandboxDockerSettings;
-    /** Optional sandboxed browser overrides for this agent. */
-    browser?: SandboxBrowserSettings;
+
     /** Auto-prune overrides for this agent. */
     prune?: SandboxPruneSettings;
   };

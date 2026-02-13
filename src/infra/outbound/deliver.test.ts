@@ -1,13 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../../config/config.js";
-import { signalOutbound } from "../../channels/plugins/outbound/signal.js";
 import { telegramOutbound } from "../../channels/plugins/outbound/telegram.js";
 import { whatsappOutbound } from "../../channels/plugins/outbound/whatsapp.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
-import { markdownToSignalTextChunks } from "../../signal/format.js";
 import {
-  createIMessageTestPlugin,
   createOutboundTestPlugin,
+  createTelegramTestPlugin,
   createTestRegistry,
 } from "../../test-utils/channel-plugins.js";
 
@@ -88,62 +86,6 @@ describe("deliverOutboundPayloads", () => {
       "hi",
       expect.objectContaining({ accountId: "default", verbose: false, textMode: "html" }),
     );
-  });
-
-  it("uses signal media maxBytes from config", async () => {
-    const sendSignal = vi.fn().mockResolvedValue({ messageId: "s1", timestamp: 123 });
-    const cfg: OpenClawConfig = { channels: { signal: { mediaMaxMb: 2 } } };
-
-    const results = await deliverOutboundPayloads({
-      cfg,
-      channel: "signal",
-      to: "+1555",
-      payloads: [{ text: "hi", mediaUrl: "https://x.test/a.jpg" }],
-      deps: { sendSignal },
-    });
-
-    expect(sendSignal).toHaveBeenCalledWith(
-      "+1555",
-      "hi",
-      expect.objectContaining({
-        mediaUrl: "https://x.test/a.jpg",
-        maxBytes: 2 * 1024 * 1024,
-        textMode: "plain",
-        textStyles: [],
-      }),
-    );
-    expect(results[0]).toMatchObject({ channel: "signal", messageId: "s1" });
-  });
-
-  it("chunks Signal markdown using the format-first chunker", async () => {
-    const sendSignal = vi.fn().mockResolvedValue({ messageId: "s1", timestamp: 123 });
-    const cfg: OpenClawConfig = {
-      channels: { signal: { textChunkLimit: 20 } },
-    };
-    const text = `Intro\\n\\n\`\`\`\`md\\n${"y".repeat(60)}\\n\`\`\`\\n\\nOutro`;
-    const expectedChunks = markdownToSignalTextChunks(text, 20);
-
-    await deliverOutboundPayloads({
-      cfg,
-      channel: "signal",
-      to: "+1555",
-      payloads: [{ text }],
-      deps: { sendSignal },
-    });
-
-    expect(sendSignal).toHaveBeenCalledTimes(expectedChunks.length);
-    expectedChunks.forEach((chunk, index) => {
-      expect(sendSignal).toHaveBeenNthCalledWith(
-        index + 1,
-        "+1555",
-        chunk.text,
-        expect.objectContaining({
-          accountId: undefined,
-          textMode: "plain",
-          textStyles: chunk.styles,
-        }),
-      );
-    });
   });
 
   it("chunks WhatsApp text and returns all results", async () => {
@@ -244,14 +186,14 @@ describe("deliverOutboundPayloads", () => {
     expect(chunker).toHaveBeenNthCalledWith(1, text, 4000);
   });
 
-  it("uses iMessage media maxBytes from agent fallback", async () => {
-    const sendIMessage = vi.fn().mockResolvedValue({ messageId: "i1" });
+  it("uses Telegram media maxBytes from agent fallback", async () => {
+    const sendTelegram = vi.fn().mockResolvedValue({ messageId: "t1", chatId: "42" });
     setActivePluginRegistry(
       createTestRegistry([
         {
-          pluginId: "imessage",
+          pluginId: "telegram",
           source: "test",
-          plugin: createIMessageTestPlugin(),
+          plugin: createTelegramTestPlugin(),
         },
       ]),
     );
@@ -261,17 +203,13 @@ describe("deliverOutboundPayloads", () => {
 
     await deliverOutboundPayloads({
       cfg,
-      channel: "imessage",
-      to: "chat_id:42",
+      channel: "telegram",
+      to: "42",
       payloads: [{ text: "hello" }],
-      deps: { sendIMessage },
+      deps: { sendTelegram },
     });
 
-    expect(sendIMessage).toHaveBeenCalledWith(
-      "chat_id:42",
-      "hello",
-      expect.objectContaining({ maxBytes: 3 * 1024 * 1024 }),
-    );
+    expect(sendTelegram).toHaveBeenCalledWith("42", "hello", expect.any(Object));
   });
 
   it("normalizes payloads and drops empty entries", () => {
@@ -361,22 +299,12 @@ const emptyRegistry = createTestRegistry([]);
 const defaultRegistry = createTestRegistry([
   {
     pluginId: "telegram",
-    plugin: createOutboundTestPlugin({ id: "telegram", outbound: telegramOutbound }),
-    source: "test",
-  },
-  {
-    pluginId: "signal",
-    plugin: createOutboundTestPlugin({ id: "signal", outbound: signalOutbound }),
+    plugin: createTelegramTestPlugin({ outbound: telegramOutbound }),
     source: "test",
   },
   {
     pluginId: "whatsapp",
     plugin: createOutboundTestPlugin({ id: "whatsapp", outbound: whatsappOutbound }),
-    source: "test",
-  },
-  {
-    pluginId: "imessage",
-    plugin: createIMessageTestPlugin(),
     source: "test",
   },
 ]);

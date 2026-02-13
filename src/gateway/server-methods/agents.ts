@@ -18,7 +18,6 @@ import {
   DEFAULT_USER_FILENAME,
   ensureAgentWorkspace,
 } from "../../agents/workspace.js";
-import { movePathToTrash } from "../../browser/trash.js";
 import {
   applyAgentConfig,
   findAgentEntryIndex,
@@ -158,9 +157,10 @@ async function moveToTrashBestEffort(pathname: string): Promise<void> {
     return;
   }
   try {
-    await movePathToTrash(pathname);
+    // Best-effort: recursive rm if it's a directory, or simple unlink if file.
+    await fs.rm(pathname, { recursive: true, force: true });
   } catch {
-    // Best-effort: path may already be gone or trash unavailable.
+    // Best-effort: path may already be gone or permission denied.
   }
 }
 

@@ -74,7 +74,9 @@ export async function rewardReferral(referredUserId: string): Promise<string | n
       "referrals",
       `referred_id=eq.${referredUserId}&status=eq.pending&limit=1`,
     );
-    if (referrals.length === 0) return null;
+    if (referrals.length === 0) {
+      return null;
+    }
 
     const referral = referrals[0];
     await db.updateReferralStatus(referredUserId, "paid");

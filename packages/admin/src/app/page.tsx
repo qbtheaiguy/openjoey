@@ -1,13 +1,43 @@
-import { TrendingUp, Users, Zap, DollarSign, ChevronRight } from "lucide-react";
+import {
+  TrendingUp,
+  Users,
+  Zap,
+  DollarSign,
+  ChevronRight,
+  Activity,
+  AlertTriangle,
+  Server,
+  Cpu,
+  CheckCircle,
+} from "lucide-react";
 import { getDashboardStats } from "@/actions/dashboard";
+import { getOpenJoeyMonitoringStats } from "@/actions/openjoey-monitoring";
 
 function formatVal(value: number | null, suffix = ""): string {
-  if (value === null) return "No data";
+  if (value === null) {
+    return "No data";
+  }
   return `${value.toLocaleString()}${suffix}`;
 }
 
+function getStatusColor(status: "healthy" | "warning" | "critical"): string {
+  switch (status) {
+    case "healthy":
+      return "#22c55e";
+    case "warning":
+      return "#f59e0b";
+    case "critical":
+      return "#ef4444";
+    default:
+      return "#6b7280";
+  }
+}
+
 export default async function Dashboard() {
-  const stats = await getDashboardStats();
+  const [stats, monitoring] = await Promise.all([
+    getDashboardStats(),
+    getOpenJoeyMonitoringStats(),
+  ]);
 
   if (!stats) {
     return (
@@ -218,6 +248,245 @@ export default async function Dashboard() {
           </section>
         </div>
       </div>
+
+      {/* OpenJoey System Health - Rule 12 Observability */}
+      <section className="card" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <h3 style={{ fontSize: "18px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <Activity size={20} />
+              OpenJoey System Health
+            </h3>
+            <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "4px" }}>
+              Agent monitoring, queue status, API health, resource usage
+            </p>
+          </div>
+          {monitoring ? (
+            <div
+              className="glass"
+              style={{
+                padding: "6px 12px",
+                borderRadius: "var(--radius)",
+                fontSize: "13px",
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                color: getStatusColor(monitoring.overallStatus),
+              }}
+            >
+              <span
+                style={{
+                  width: "8px",
+                  height: "8px",
+                  backgroundColor: getStatusColor(monitoring.overallStatus),
+                  borderRadius: "50%",
+                }}
+              />
+              {monitoring.overallStatus.toUpperCase()}
+            </div>
+          ) : (
+            <div
+              className="glass"
+              style={{
+                padding: "6px 12px",
+                borderRadius: "var(--radius)",
+                fontSize: "13px",
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                color: "#6b7280",
+              }}
+            >
+              <span
+                style={{
+                  width: "8px",
+                  height: "8px",
+                  backgroundColor: "#6b7280",
+                  borderRadius: "50%",
+                }}
+              />
+              UNAVAILABLE
+            </div>
+          )}
+        </div>
+
+        {monitoring ? (
+          <>
+            {/* Status Cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
+              {monitoring.reports.map((report) => (
+                <div
+                  key={report.system}
+                  className="card"
+                  style={{
+                    padding: "16px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                    borderLeft: `3px solid ${getStatusColor(report.status)}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span style={{ fontSize: "14px", fontWeight: 600 }}>{report.system}</span>
+                    {report.status === "healthy" ? (
+                      <CheckCircle size={16} color="#22c55e" />
+                    ) : (
+                      <AlertTriangle size={16} color={getStatusColor(report.status)} />
+                    )}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    {report.metrics
+                      .slice(0, 2)
+                      .map((metric: { name: string; value: number; unit: string }) => (
+                        <div
+                          key={metric.name}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            fontSize: "12px",
+                          }}
+                        >
+                          <span style={{ color: "var(--text-muted)" }}>{metric.name}:</span>
+                          <span>
+                            {metric.value.toFixed(1)} {metric.unit}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Alerts & Recovery Actions */}
+            {(monitoring.reports.some((r) => r.alerts.length > 0) ||
+              monitoring.actions.length > 0) && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                {/* Alerts */}
+                {monitoring.reports.some((r) => r.alerts.length > 0) && (
+                  <div
+                    style={{
+                      padding: "16px",
+                      backgroundColor: "#fef2f2",
+                      borderRadius: "var(--radius)",
+                      border: "1px solid #fee2e2",
+                    }}
+                  >
+                    <h4
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        color: "#991b1b",
+                        marginBottom: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <AlertTriangle size={16} />
+                      Active Alerts
+                    </h4>
+                    <ul
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                        fontSize: "13px",
+                        color: "#7f1d1d",
+                      }}
+                    >
+                      {monitoring.reports
+                        .flatMap((r) => r.alerts)
+                        .map((alert, i) => (
+                          <li
+                            key={i}
+                            style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}
+                          >
+                            <span>•</span>
+                            <span>{alert}</span>
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Recovery Actions */}
+                {monitoring.actions.length > 0 && (
+                  <div
+                    style={{
+                      padding: "16px",
+                      backgroundColor: "#eff6ff",
+                      borderRadius: "var(--radius)",
+                      border: "1px solid #dbeafe",
+                    }}
+                  >
+                    <h4
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        color: "#1e40af",
+                        marginBottom: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <Server size={16} />
+                      Suggested Recovery Actions
+                    </h4>
+                    <ul
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                        fontSize: "13px",
+                        color: "#1e3a8a",
+                      }}
+                    >
+                      {monitoring.actions.map((action, i) => (
+                        <li
+                          key={i}
+                          style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}
+                        >
+                          <span>→</span>
+                          <span>
+                            {action.type === "notify_admin" && "Notify admin"}
+                            {action.type === "restart_agent" && `Restart agent: ${action.agentId}`}
+                            {action.type === "scale_workers" && `Scale workers: +${action.count}`}
+                            {action.type === "clear_queue" && "Clear queue"}
+                            {action.type === "rotate_api" &&
+                              `Rotate API: ${action.from} → ${action.to}`}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <div
+            style={{
+              padding: "24px",
+              textAlign: "center",
+              color: "var(--text-muted)",
+              backgroundColor: "var(--bg-soft)",
+              borderRadius: "var(--radius)",
+            }}
+          >
+            <Server size={32} style={{ marginBottom: "12px", opacity: 0.5 }} />
+            <p>Monitoring data unavailable. Check that the OpenJoey backend is running.</p>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -162,13 +162,11 @@ export type GroupToolPolicyBySenderConfig = Record<string, GroupToolPolicyConfig
 
 export type ExecToolConfig = {
   /** Exec host routing (default: sandbox). */
-  host?: "sandbox" | "gateway" | "node";
+  host?: "sandbox" | "gateway";
   /** Exec security mode (default: deny). */
   security?: "deny" | "allowlist" | "full";
   /** Exec ask mode (default: on-miss). */
   ask?: "off" | "on-miss" | "always";
-  /** Default node binding for exec.host=node (node id/name). */
-  node?: string;
   /** Directories to prepend to PATH when running exec (gateway/sandbox). */
   pathPrepend?: string[];
   /** Safe stdin-only binaries that can run without allowlist entries. */

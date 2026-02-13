@@ -105,14 +105,6 @@ const entries: SubCliEntry[] = [
     },
   },
   {
-    name: "node",
-    description: "Node control",
-    register: async (program) => {
-      const mod = await import("../node-cli.js");
-      mod.registerNodeCli(program);
-    },
-  },
-  {
     name: "sandbox",
     description: "Sandbox tools",
     register: async (program) => {

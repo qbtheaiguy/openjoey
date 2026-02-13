@@ -44,19 +44,19 @@ export async function getSettingsStatus(): Promise<SettingsStatus> {
     try {
       await db.get("skill_usage", "limit=1");
       skillUsageTable = true;
-    } catch (e) {
+    } catch {
       console.warn("skill_usage missing");
     }
     try {
       await db.get("referrals", "limit=1");
       referralsTable = true;
-    } catch (e) {
+    } catch {
       console.warn("referrals missing");
     }
     try {
       await db.get("referral_leaderboard", "limit=1");
       referralLeaderboardView = true;
-    } catch (e) {
+    } catch {
       console.warn("referral_leaderboard missing");
     }
 

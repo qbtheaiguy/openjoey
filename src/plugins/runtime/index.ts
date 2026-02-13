@@ -2,7 +2,6 @@ import { createRequire } from "node:module";
 import type { PluginRuntime } from "./types.js";
 import { resolveEffectiveMessagesConfig, resolveHumanDelayConfig } from "../../agents/identity.js";
 import { createMemoryGetTool, createMemorySearchTool } from "../../agents/tools/memory-tool.js";
-import { handleSlackAction } from "../../agents/tools/slack-actions.js";
 import { handleWhatsAppAction } from "../../agents/tools/whatsapp-actions.js";
 import {
   chunkByNewline,
@@ -40,7 +39,6 @@ import { createReplyDispatcherWithTyping } from "../../auto-reply/reply/reply-di
 import { removeAckReactionAfterReply, shouldAckReaction } from "../../channels/ack-reactions.js";
 import { resolveCommandAuthorizedFromAuthorizers } from "../../channels/command-gating.js";
 import { discordMessageActions } from "../../channels/plugins/actions/discord.js";
-import { signalMessageActions } from "../../channels/plugins/actions/signal.js";
 import { telegramMessageActions } from "../../channels/plugins/actions/telegram.js";
 import { createWhatsAppLoginTool } from "../../channels/plugins/agent-tools/whatsapp-login.js";
 import { recordInboundSession } from "../../channels/session.js";
@@ -70,30 +68,8 @@ import { resolveDiscordChannelAllowlist } from "../../discord/resolve-channels.j
 import { resolveDiscordUserAllowlist } from "../../discord/resolve-users.js";
 import { sendMessageDiscord, sendPollDiscord } from "../../discord/send.js";
 import { shouldLogVerbose } from "../../globals.js";
-import { monitorIMessageProvider } from "../../imessage/monitor.js";
-import { probeIMessage } from "../../imessage/probe.js";
-import { sendMessageIMessage } from "../../imessage/send.js";
 import { getChannelActivity, recordChannelActivity } from "../../infra/channel-activity.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
-import {
-  listLineAccountIds,
-  normalizeAccountId as normalizeLineAccountId,
-  resolveDefaultLineAccountId,
-  resolveLineAccount,
-} from "../../line/accounts.js";
-import { monitorLineProvider } from "../../line/monitor.js";
-import { probeLineBot } from "../../line/probe.js";
-import {
-  createQuickReplyItems,
-  pushMessageLine,
-  pushMessagesLine,
-  pushFlexMessage,
-  pushTemplateMessage,
-  pushLocationMessage,
-  pushTextMessageWithQuickReplies,
-  sendMessageLine,
-} from "../../line/send.js";
-import { buildTemplateMessageFromPayload } from "../../line/template-messages.js";
 import { getChildLogger } from "../../logging.js";
 import { normalizeLogLevel } from "../../logging/levels.js";
 import { convertMarkdownTables } from "../../markdown/tables.js";
@@ -110,18 +86,6 @@ import {
 } from "../../pairing/pairing-store.js";
 import { runCommandWithTimeout } from "../../process/exec.js";
 import { resolveAgentRoute } from "../../routing/resolve-route.js";
-import { monitorSignalProvider } from "../../signal/index.js";
-import { probeSignal } from "../../signal/probe.js";
-import { sendMessageSignal } from "../../signal/send.js";
-import {
-  listSlackDirectoryGroupsLive,
-  listSlackDirectoryPeersLive,
-} from "../../slack/directory-live.js";
-import { monitorSlackProvider } from "../../slack/index.js";
-import { probeSlack } from "../../slack/probe.js";
-import { resolveSlackChannelAllowlist } from "../../slack/resolve-channels.js";
-import { resolveSlackUserAllowlist } from "../../slack/resolve-users.js";
-import { sendMessageSlack } from "../../slack/send.js";
 import {
   auditTelegramGroupMembership,
   collectTelegramUnmentionedGroupIds,
@@ -130,7 +94,6 @@ import { monitorTelegramProvider } from "../../telegram/monitor.js";
 import { probeTelegram } from "../../telegram/probe.js";
 import { sendMessageTelegram } from "../../telegram/send.js";
 import { resolveTelegramToken } from "../../telegram/token.js";
-import { textToSpeechTelephony } from "../../tts/tts.js";
 import { getActiveWebListener } from "../../web/active-listener.js";
 import {
   getWebAuthAgeMs,
@@ -182,9 +145,7 @@ export function createPluginRuntime(): PluginRuntime {
       getImageMetadata,
       resizeToJpeg,
     },
-    tts: {
-      textToSpeechTelephony,
-    },
+
     tools: {
       createMemoryGetTool,
       createMemorySearchTool,
@@ -272,16 +233,6 @@ export function createPluginRuntime(): PluginRuntime {
         sendPollDiscord,
         monitorDiscordProvider,
       },
-      slack: {
-        listDirectoryGroupsLive: listSlackDirectoryGroupsLive,
-        listDirectoryPeersLive: listSlackDirectoryPeersLive,
-        probeSlack,
-        resolveChannelAllowlist: resolveSlackChannelAllowlist,
-        resolveUserAllowlist: resolveSlackUserAllowlist,
-        sendMessageSlack,
-        monitorSlackProvider,
-        handleSlackAction,
-      },
       telegram: {
         auditGroupMembership: auditTelegramGroupMembership,
         collectUnmentionedGroupIds: collectTelegramUnmentionedGroupIds,
@@ -290,17 +241,6 @@ export function createPluginRuntime(): PluginRuntime {
         sendMessageTelegram,
         monitorTelegramProvider,
         messageActions: telegramMessageActions,
-      },
-      signal: {
-        probeSignal,
-        sendMessageSignal,
-        monitorSignalProvider,
-        messageActions: signalMessageActions,
-      },
-      imessage: {
-        monitorIMessageProvider,
-        probeIMessage,
-        sendMessageIMessage,
       },
       whatsapp: {
         getActiveWebListener,
@@ -317,23 +257,6 @@ export function createPluginRuntime(): PluginRuntime {
         monitorWebChannel,
         handleWhatsAppAction,
         createLoginTool: createWhatsAppLoginTool,
-      },
-      line: {
-        listLineAccountIds,
-        resolveDefaultLineAccountId,
-        resolveLineAccount,
-        normalizeAccountId: normalizeLineAccountId,
-        probeLineBot,
-        sendMessageLine,
-        pushMessageLine,
-        pushMessagesLine,
-        pushFlexMessage,
-        pushTemplateMessage,
-        pushLocationMessage,
-        pushTextMessageWithQuickReplies,
-        createQuickReplyItems,
-        buildTemplateMessageFromPayload,
-        monitorLineProvider,
       },
     },
     logging: {

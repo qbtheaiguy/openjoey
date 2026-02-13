@@ -139,7 +139,9 @@ export class OpenJoeyDB {
 
   public async get<T>(table: string, query: string = ""): Promise<T[]> {
     const res = await fetch(`${this.url}/rest/v1/${table}?${query}`, { headers: this.headers });
-    if (!res.ok) throw new Error(`Supabase GET ${table}: ${res.status} ${await res.text()}`);
+    if (!res.ok) {
+      throw new Error(`Supabase GET ${table}: ${res.status} ${await res.text()}`);
+    }
     return res.json();
   }
 
@@ -149,7 +151,9 @@ export class OpenJoeyDB {
       headers: this.headers,
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error(`Supabase INSERT ${table}: ${res.status} ${await res.text()}`);
+    if (!res.ok) {
+      throw new Error(`Supabase INSERT ${table}: ${res.status} ${await res.text()}`);
+    }
     const rows: T[] = await res.json();
     return rows[0];
   }
@@ -164,7 +168,9 @@ export class OpenJoeyDB {
       headers: this.headers,
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error(`Supabase PATCH ${table}: ${res.status} ${await res.text()}`);
+    if (!res.ok) {
+      throw new Error(`Supabase PATCH ${table}: ${res.status} ${await res.text()}`);
+    }
     return res.json();
   }
 
@@ -173,7 +179,9 @@ export class OpenJoeyDB {
       method: "DELETE",
       headers: this.headers,
     });
-    if (!res.ok) throw new Error(`Supabase DELETE ${table}: ${res.status} ${await res.text()}`);
+    if (!res.ok) {
+      throw new Error(`Supabase DELETE ${table}: ${res.status} ${await res.text()}`);
+    }
   }
 
   private async rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
@@ -182,7 +190,9 @@ export class OpenJoeyDB {
       headers: this.headers,
       body: JSON.stringify(args),
     });
-    if (!res.ok) throw new Error(`Supabase RPC ${fn}: ${res.status} ${await res.text()}`);
+    if (!res.ok) {
+      throw new Error(`Supabase RPC ${fn}: ${res.status} ${await res.text()}`);
+    }
     return res.json();
   }
 
@@ -303,7 +313,9 @@ export class OpenJoeyDB {
 
   async getUserAlerts(userId: string, activeOnly = true): Promise<Alert[]> {
     let query = `user_id=eq.${userId}&order=created_at.desc`;
-    if (activeOnly) query += "&is_active=eq.true";
+    if (activeOnly) {
+      query += "&is_active=eq.true";
+    }
     return this.get<Alert>("alerts", query);
   }
 
@@ -429,9 +441,13 @@ export class OpenJoeyDB {
     referredId: string,
     status: "converted" | "paid" | "cancelled",
   ): Promise<void> {
-    const updates: any = { status };
-    if (status === "converted") updates.converted_at = new Date().toISOString();
-    if (status === "paid") updates.paid_at = new Date().toISOString();
+    const updates: Record<string, string> = { status };
+    if (status === "converted") {
+      updates.converted_at = new Date().toISOString();
+    }
+    if (status === "paid") {
+      updates.paid_at = new Date().toISOString();
+    }
 
     await this.update("referrals", `referred_id=eq.${referredId}`, updates);
   }
@@ -535,8 +551,30 @@ export class OpenJoeyDB {
     cost_tier: string;
     allowed_tiers: string[];
   } | null> {
-    const rows = await this.get<any>("skill_catalog", `id=eq.${skillId}&limit=1`);
+    const rows = await this.get<{
+      display_name: string;
+      cost_tier: string;
+      allowed_tiers: string[];
+    }>("skill_catalog", `id=eq.${skillId}&limit=1`);
     return rows[0] ?? null;
+  }
+
+  async getSkillByCategory(category: string): Promise<{
+    id: string;
+    skill_name: string;
+  } | null> {
+    const rows = await this.get<{
+      id: string;
+      skill_name: string;
+    }>("skill_catalog", `category=eq.${category}&limit=1`);
+    const row = rows[0];
+    if (!row) {
+      return null;
+    }
+    return {
+      id: row.id,
+      skill_name: row.skill_name,
+    };
   }
 
   /** For skill detail view: display name, description, category. */
@@ -545,12 +583,15 @@ export class OpenJoeyDB {
     description: string | null;
     category: string | null;
   } | null> {
-    const rows = await this.get<any>(
-      "skill_catalog",
-      `id=eq.${encodeURIComponent(skillId)}&limit=1`,
-    );
+    const rows = await this.get<{
+      display_name: string | null;
+      description: string | null;
+      category: string | null;
+    }>("skill_catalog", `id=eq.${encodeURIComponent(skillId)}&limit=1`);
     const row = rows[0];
-    if (!row) return null;
+    if (!row) {
+      return null;
+    }
     return {
       display_name: row.display_name ?? skillId,
       description: row.description ?? null,
@@ -685,7 +726,9 @@ export class OpenJoeyDB {
       headers: this.headers,
       body: JSON.stringify({ telegram_id: telegramId, tier }),
     });
-    if (!res.ok) throw new Error(`Checkout: ${res.status} ${await res.text()}`);
+    if (!res.ok) {
+      throw new Error(`Checkout: ${res.status} ${await res.text()}`);
+    }
     return res.json();
   }
 }
@@ -694,7 +737,9 @@ export class OpenJoeyDB {
 let _db: OpenJoeyDB | null = null;
 
 export function getOpenJoeyDB(): OpenJoeyDB {
-  if (_db) return _db;
+  if (_db) {
+    return _db;
+  }
   const url = process.env.SUPABASE_URL ?? process.env.OPENJOEY_SUPABASE_URL ?? "";
   const key =
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.OPENJOEY_SUPABASE_SERVICE_ROLE_KEY ?? "";

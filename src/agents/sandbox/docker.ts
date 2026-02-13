@@ -3,7 +3,7 @@ import type { SandboxConfig, SandboxDockerConfig, SandboxWorkspaceAccess } from 
 import { formatCliCommand } from "../../cli/command-format.js";
 import { defaultRuntime } from "../../runtime.js";
 import { computeSandboxConfigHash } from "./config-hash.js";
-import { DEFAULT_SANDBOX_IMAGE, SANDBOX_AGENT_WORKSPACE_MOUNT } from "./constants.js";
+import { DEFAULT_SANDBOX_IMAGE } from "./constants.js";
 import { readRegistry, updateRegistry } from "./registry.js";
 import { resolveSandboxAgentId, resolveSandboxScopeKey, slugifySessionKey } from "./shared.js";
 
@@ -229,10 +229,7 @@ async function createSandboxContainer(params: {
   args.push("-v", `${workspaceDir}:${cfg.workdir}${mainMountSuffix}`);
   if (params.workspaceAccess !== "none" && workspaceDir !== params.agentWorkspaceDir) {
     const agentMountSuffix = params.workspaceAccess === "ro" ? ":ro" : "";
-    args.push(
-      "-v",
-      `${params.agentWorkspaceDir}:${SANDBOX_AGENT_WORKSPACE_MOUNT}${agentMountSuffix}`,
-    );
+    args.push("-v", `${params.agentWorkspaceDir}:/agent${agentMountSuffix}`);
   }
   args.push(cfg.image, "sleep", "infinity");
 

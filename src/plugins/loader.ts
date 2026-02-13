@@ -166,6 +166,7 @@ function pushDiagnostics(diagnostics: PluginDiagnostic[], append: PluginDiagnost
   diagnostics.push(...append);
 }
 
+import { OPENJOEY_ALLOWED_EXTENSIONS } from "../openjoey/config.js";
 import { registerOpenJoeyGuard } from "../openjoey/skill-guard-hook.js";
 
 export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegistry {
@@ -248,6 +249,12 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
       continue;
     }
     const pluginId = manifestRecord.id;
+
+    // Filter non-trading plugins for OpenJoey
+    if (!(OPENJOEY_ALLOWED_EXTENSIONS as readonly string[]).includes(pluginId)) {
+      continue;
+    }
+
     const existingOrigin = seenIds.get(pluginId);
     if (existingOrigin) {
       const record = createPluginRecord({

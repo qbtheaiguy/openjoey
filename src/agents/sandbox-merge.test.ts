@@ -91,17 +91,8 @@ describe("sandbox config merges", () => {
     expect(resolved.image).toBe("global");
   });
 
-  it("applies per-agent browser and prune overrides (ignored under shared scope)", async () => {
-    const { resolveSandboxBrowserConfig, resolveSandboxPruneConfig } = await import("./sandbox.js");
-
-    const browser = resolveSandboxBrowserConfig({
-      scope: "agent",
-      globalBrowser: { enabled: false, headless: false, enableNoVnc: true },
-      agentBrowser: { enabled: true, headless: true, enableNoVnc: false },
-    });
-    expect(browser.enabled).toBe(true);
-    expect(browser.headless).toBe(true);
-    expect(browser.enableNoVnc).toBe(false);
+  it("applies per-agent prune overrides (ignored under shared scope)", async () => {
+    const { resolveSandboxPruneConfig } = await import("./sandbox.js");
 
     const prune = resolveSandboxPruneConfig({
       scope: "agent",
@@ -109,13 +100,6 @@ describe("sandbox config merges", () => {
       agentPrune: { idleHours: 0, maxAgeDays: 1 },
     });
     expect(prune).toEqual({ idleHours: 0, maxAgeDays: 1 });
-
-    const browserShared = resolveSandboxBrowserConfig({
-      scope: "shared",
-      globalBrowser: { enabled: false },
-      agentBrowser: { enabled: true },
-    });
-    expect(browserShared.enabled).toBe(false);
 
     const pruneShared = resolveSandboxPruneConfig({
       scope: "shared",

@@ -33,7 +33,7 @@ function resolveExecDefaults(params: {
   cfg: OpenClawConfig;
   sessionEntry?: SessionEntry;
   agentId?: string;
-}): { host: ExecHost; security: ExecSecurity; ask: ExecAsk; node?: string } {
+}): { host: ExecHost; security: ExecSecurity; ask: ExecAsk } {
   const globalExec = params.cfg.tools?.exec;
   const agentExec = params.agentId
     ? resolveAgentConfig(params.cfg, params.agentId)?.tools?.exec
@@ -54,7 +54,6 @@ function resolveExecDefaults(params: {
       (agentExec?.ask as ExecAsk | undefined) ??
       (globalExec?.ask as ExecAsk | undefined) ??
       "on-miss",
-    node: params.sessionEntry?.execNode ?? agentExec?.node ?? globalExec?.node,
   };
 }
 
@@ -257,11 +256,10 @@ export async function handleDirectiveOnly(params: {
         sessionEntry,
         agentId: activeAgentId,
       });
-      const nodeLabel = execDefaults.node ? `node=${execDefaults.node}` : "node=(unset)";
       return {
         text: withOptions(
-          `Current exec defaults: host=${execDefaults.host}, security=${execDefaults.security}, ask=${execDefaults.ask}, ${nodeLabel}.`,
-          "host=sandbox|gateway|node, security=deny|allowlist|full, ask=off|on-miss|always, node=<id>",
+          `Current exec defaults: host=${execDefaults.host}, security=${execDefaults.security}, ask=${execDefaults.ask}.`,
+          "host=sandbox|gateway, security=deny|allowlist|full, ask=off|on-miss|always",
         ),
       };
     }
@@ -347,9 +345,6 @@ export async function handleDirectiveOnly(params: {
     }
     if (directives.execAsk) {
       sessionEntry.execAsk = directives.execAsk;
-    }
-    if (directives.execNode) {
-      sessionEntry.execNode = directives.execNode;
     }
   }
   if (modelSelection) {

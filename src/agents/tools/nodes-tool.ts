@@ -392,7 +392,7 @@ export function createNodesTool(options?: {
             const nodes = await listNodes(gatewayOpts);
             if (nodes.length === 0) {
               throw new Error(
-                "system.run requires a paired companion app or node host (no nodes available).",
+                "system.run requires a paired companion app or node (no nodes available).",
               );
             }
             const nodeId = resolveNodeIdFromList(nodes, node);
@@ -402,7 +402,7 @@ export function createNodesTool(options?: {
               : false;
             if (!supportsSystemRun) {
               throw new Error(
-                "system.run requires a companion app or node host; the selected node does not support system.run.",
+                "system.run requires a companion app or node; the selected node does not support system.run.",
               );
             }
             const commandRaw = params.command;

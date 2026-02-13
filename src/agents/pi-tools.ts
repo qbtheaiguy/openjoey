@@ -93,7 +93,6 @@ function resolveExecConfig(cfg: OpenClawConfig | undefined) {
     host: globalExec?.host,
     security: globalExec?.security,
     ask: globalExec?.ask,
-    node: globalExec?.node,
     pathPrepend: globalExec?.pathPrepend,
     safeBins: globalExec?.safeBins,
     backgroundMs: globalExec?.backgroundMs,
@@ -278,7 +277,6 @@ export function createOpenClawCodingTools(options?: {
     host: options?.exec?.host ?? execConfig.host,
     security: options?.exec?.security ?? execConfig.security,
     ask: options?.exec?.ask ?? execConfig.ask,
-    node: options?.exec?.node ?? execConfig.node,
     pathPrepend: options?.exec?.pathPrepend ?? execConfig.pathPrepend,
     safeBins: options?.exec?.safeBins ?? execConfig.safeBins,
     agentId,
@@ -325,8 +323,6 @@ export function createOpenClawCodingTools(options?: {
     // Channel docking: include channel-defined agent tools (login, etc.).
     ...listChannelAgentTools({ cfg: options?.config }),
     ...createOpenClawTools({
-      sandboxBrowserBridgeUrl: sandbox?.browser?.bridgeUrl,
-      allowHostBrowserControl: sandbox ? sandbox.browserAllowHostControl : true,
       agentSessionKey: options?.sessionKey,
       agentChannel: resolveGatewayMessageChannel(options?.messageProvider),
       agentAccountId: options?.agentAccountId,

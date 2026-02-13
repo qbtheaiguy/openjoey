@@ -63,11 +63,21 @@ export async function handleOpenJoeyCallback(
   userId: string,
   telegramId: number,
 ): Promise<CallbackResult | null> {
-  if (data.startsWith("w:")) return handleWatchlistCallback(data, userId);
-  if (data.startsWith("s:")) return handleSkillsCallback(data, userId);
-  if (data.startsWith("m:")) return handleMenuCallback(data, userId, telegramId);
-  if (data.startsWith("r:")) return handleReferralCallback(data, userId, telegramId);
-  if (data.startsWith("a:")) return handleAlertsCallback(data, userId);
+  if (data.startsWith("w:")) {
+    return handleWatchlistCallback(data, userId);
+  }
+  if (data.startsWith("s:")) {
+    return handleSkillsCallback(data, userId);
+  }
+  if (data.startsWith("m:")) {
+    return handleMenuCallback(data, userId, telegramId);
+  }
+  if (data.startsWith("r:")) {
+    return handleReferralCallback(data, userId, telegramId);
+  }
+  if (data.startsWith("a:")) {
+    return handleAlertsCallback(data, userId);
+  }
   return null;
 }
 
@@ -91,7 +101,7 @@ async function handleWatchlistCallback(
         answerText: `${symbol} added to watchlist!`,
         editText: `\u2705 ${symbol} added to your watchlist.`,
       };
-    } catch (err) {
+    } catch {
       // Likely unique constraint violation = already in list
       return { answerText: `${symbol} is already in your watchlist.` };
     }
@@ -125,15 +135,21 @@ async function handleWatchlistCallback(
 
     if (tokens.length > 0) {
       text += `\n\u{1FA99} *TOKENS (${tokens.length})*\n`;
-      for (const t of tokens) text += `\u2022 ${t.symbol}\n`;
+      for (const t of tokens) {
+        text += `\u2022 ${t.symbol}\n`;
+      }
     }
     if (stocks.length > 0) {
       text += `\n\u{1F4C8} *STOCKS (${stocks.length})*\n`;
-      for (const s of stocks) text += `\u2022 ${s.symbol}\n`;
+      for (const s of stocks) {
+        text += `\u2022 ${s.symbol}\n`;
+      }
     }
     if (penny.length > 0) {
       text += `\n\u{1F4C9} *PENNY (${penny.length})*\n`;
-      for (const p of penny) text += `\u2022 ${p.symbol}\n`;
+      for (const p of penny) {
+        text += `\u2022 ${p.symbol}\n`;
+      }
     }
 
     // Active alerts section (optional, doc §3.7)
@@ -144,7 +160,9 @@ async function handleWatchlistCallback(
         const cond = a.condition === "above" ? "\u2191" : "\u2193";
         text += `\u2022 ${a.token_symbol} ${cond} $${Number(a.target_price).toLocaleString()}\n`;
       }
-      if (alerts.length > 5) text += `\u2026 and ${alerts.length - 5} more\n`;
+      if (alerts.length > 5) {
+        text += `\u2026 and ${alerts.length - 5} more\n`;
+      }
     }
 
     // Build per-symbol buttons (grouped, max 10 total)
@@ -395,7 +413,9 @@ async function handleMenuCallback(
     try {
       const db = getOpenJoeyDB();
       const user = await db.getUser(telegramId);
-      if (!user) return null;
+      if (!user) {
+        return null;
+      }
       const lifecycle = await getUserLifecycleData(db, user);
       const referralStats =
         lifecycle.stage !== "day1" ? await db.getReferralStats(user.id).catch(() => null) : null;
@@ -460,7 +480,9 @@ async function handleReferralCallback(
 ): Promise<CallbackResult | null> {
   const db = getOpenJoeyDB();
   const user = await db.getUser(telegramId);
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
   // r:details — full referral modal
   if (data === "r:details") {

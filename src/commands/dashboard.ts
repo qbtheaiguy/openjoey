@@ -1,6 +1,5 @@
 import type { RuntimeEnv } from "../runtime.js";
 import { readConfigFileSnapshot, resolveGatewayPort } from "../config/config.js";
-import { copyToClipboard } from "../infra/clipboard.js";
 import { defaultRuntime } from "../runtime.js";
 import {
   detectBrowserOpenSupport,
@@ -37,9 +36,6 @@ export async function dashboardCommand(
     : links.httpUrl;
 
   runtime.log(`Dashboard URL: ${dashboardUrl}`);
-
-  const copied = await copyToClipboard(dashboardUrl).catch(() => false);
-  runtime.log(copied ? "Copied to clipboard." : "Copy to clipboard unavailable.");
 
   let opened = false;
   let hint: string | undefined;

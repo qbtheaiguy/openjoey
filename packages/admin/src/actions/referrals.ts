@@ -14,7 +14,9 @@ export interface ReferralRow {
 
 export async function getReferrals(): Promise<{ referrals: ReferralRow[]; total: number } | null> {
   const db = getAdminDB();
-  if (!db) return null;
+  if (!db) {
+    return null;
+  }
 
   // We'll use a join or custom RPC if possible, but for now just fetch the table
   // Ideally we want to show usernames

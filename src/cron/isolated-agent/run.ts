@@ -40,7 +40,7 @@ import {
   normalizeVerboseLevel,
   supportsXHighThinking,
 } from "../../auto-reply/thinking.js";
-import { createOutboundSendDeps, type CliDeps } from "../../cli/outbound-send-deps.js";
+import { createOutboundSendDeps, type CliDeps } from "../../cli/deps.js";
 import {
   resolveAgentMainSessionKey,
   resolveSessionTranscriptPath,

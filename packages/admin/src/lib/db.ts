@@ -47,7 +47,9 @@ export class OpenJoeyAdminDB {
       throw new Error(`Supabase COUNT ${table}: ${res.status} ${text}`);
     }
     const range = res.headers.get("content-range");
-    if (!range) return 0;
+    if (!range) {
+      return 0;
+    }
     const match = range.match(/\/(\d+)$/);
     return match ? parseInt(match[1], 10) : 0;
   }
@@ -65,6 +67,22 @@ export class OpenJoeyAdminDB {
     }
     return res.json();
   }
+
+  /** Update rows matching the query with the given data */
+  async patch<T>(table: string, data: Record<string, unknown>, query: string): Promise<T[]> {
+    const res = await fetch(`${this.url}/rest/v1/${table}?${query}`, {
+      method: "PATCH",
+      headers: this.headers,
+      body: JSON.stringify(data),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Supabase PATCH ${table}: ${res.status} ${text}`);
+    }
+    const result = await res.json();
+    return Array.isArray(result) ? result : [];
+  }
 }
 
 let _db: OpenJoeyAdminDB | null = null;
@@ -73,6 +91,8 @@ export function getAdminDB(): OpenJoeyAdminDB | null {
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return null;
   }
-  if (!_db) _db = new OpenJoeyAdminDB();
+  if (!_db) {
+    _db = new OpenJoeyAdminDB();
+  }
   return _db;
 }

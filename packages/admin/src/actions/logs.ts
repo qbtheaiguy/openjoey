@@ -16,7 +16,9 @@ export async function getSkillLogs(
   limit = 50,
 ): Promise<{ logs: SkillLogRow[]; total: number } | null> {
   const db = getAdminDB();
-  if (!db) return null;
+  if (!db) {
+    return null;
+  }
   try {
     const [logs, total] = await Promise.all([
       db.get<SkillLogRow>(

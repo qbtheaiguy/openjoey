@@ -15,10 +15,8 @@ import { resolveChannelCapabilities } from "../../config/channel-capabilities.js
 import { getMachineDisplayName } from "../../infra/machine-name.js";
 import { type enqueueCommand, enqueueCommandInLane } from "../../process/command-queue.js";
 import { isSubagentSessionKey } from "../../routing/session-key.js";
-import { resolveSignalReactionLevel } from "../../signal/reaction-level.js";
 import { resolveTelegramInlineButtonsScope } from "../../telegram/inline-buttons.js";
 import { resolveTelegramReactionLevel } from "../../telegram/reaction-level.js";
-import { buildTtsSystemPromptHint } from "../../tts/tts.js";
 import { resolveUserPath } from "../../utils.js";
 import { normalizeMessageChannel } from "../../utils/message-channel.js";
 import { isReasoningTagProvider } from "../../utils/provider-utils.js";
@@ -291,14 +289,6 @@ export async function compactEmbeddedPiSessionDirect(
               const level = resolved.agentReactionGuidance;
               return level ? { level, channel: "Telegram" } : undefined;
             }
-            if (runtimeChannel === "signal") {
-              const resolved = resolveSignalReactionLevel({
-                cfg: params.config,
-                accountId: params.agentAccountId ?? undefined,
-              });
-              const level = resolved.agentReactionGuidance;
-              return level ? { level, channel: "Signal" } : undefined;
-            }
             return undefined;
           })()
         : undefined;
@@ -345,7 +335,7 @@ export async function compactEmbeddedPiSessionDirect(
       cwd: process.cwd(),
       moduleUrl: import.meta.url,
     });
-    const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
+
     const appendPrompt = buildEmbeddedSystemPrompt({
       workspaceDir: effectiveWorkspace,
       defaultThinkLevel: params.thinkLevel,
@@ -358,7 +348,7 @@ export async function compactEmbeddedPiSessionDirect(
         : undefined,
       skillsPrompt,
       docsPath: docsPath ?? undefined,
-      ttsHint,
+
       promptMode,
       runtimeInfo,
       reactionGuidance,

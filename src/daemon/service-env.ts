@@ -5,12 +5,6 @@ import {
   GATEWAY_SERVICE_MARKER,
   resolveGatewayLaunchAgentLabel,
   resolveGatewaySystemdServiceName,
-  NODE_SERVICE_KIND,
-  NODE_SERVICE_MARKER,
-  NODE_WINDOWS_TASK_SCRIPT_NAME,
-  resolveNodeLaunchAgentLabel,
-  resolveNodeSystemdServiceName,
-  resolveNodeWindowsTaskName,
 } from "./constants.js";
 
 export type MinimalServicePathOptions = {
@@ -167,28 +161,6 @@ export function buildServiceEnvironment(params: {
     OPENCLAW_SYSTEMD_UNIT: systemdUnit,
     OPENCLAW_SERVICE_MARKER: GATEWAY_SERVICE_MARKER,
     OPENCLAW_SERVICE_KIND: GATEWAY_SERVICE_KIND,
-    OPENCLAW_SERVICE_VERSION: VERSION,
-  };
-}
-
-export function buildNodeServiceEnvironment(params: {
-  env: Record<string, string | undefined>;
-}): Record<string, string | undefined> {
-  const { env } = params;
-  const stateDir = env.OPENCLAW_STATE_DIR;
-  const configPath = env.OPENCLAW_CONFIG_PATH;
-  return {
-    HOME: env.HOME,
-    PATH: buildMinimalServicePath({ env }),
-    OPENCLAW_STATE_DIR: stateDir,
-    OPENCLAW_CONFIG_PATH: configPath,
-    OPENCLAW_LAUNCHD_LABEL: resolveNodeLaunchAgentLabel(),
-    OPENCLAW_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
-    OPENCLAW_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
-    OPENCLAW_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
-    OPENCLAW_LOG_PREFIX: "node",
-    OPENCLAW_SERVICE_MARKER: NODE_SERVICE_MARKER,
-    OPENCLAW_SERVICE_KIND: NODE_SERVICE_KIND,
     OPENCLAW_SERVICE_VERSION: VERSION,
   };
 }

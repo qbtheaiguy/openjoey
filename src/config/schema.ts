@@ -51,7 +51,6 @@ const GROUP_LABELS: Record<string, string> = {
   diagnostics: "Diagnostics",
   logging: "Logging",
   gateway: "Gateway",
-  nodeHost: "Node Host",
   agents: "Agents",
   tools: "Tools",
   bindings: "Bindings",
@@ -63,7 +62,6 @@ const GROUP_LABELS: Record<string, string> = {
   cron: "Cron",
   hooks: "Hooks",
   ui: "UI",
-  browser: "Browser",
   talk: "Talk",
   channels: "Messaging Channels",
   skills: "Skills",
@@ -78,7 +76,6 @@ const GROUP_ORDER: Record<string, number> = {
   update: 25,
   diagnostics: 27,
   gateway: 30,
-  nodeHost: 35,
   agents: 40,
   tools: 50,
   bindings: 55,
@@ -90,7 +87,6 @@ const GROUP_ORDER: Record<string, number> = {
   cron: 100,
   hooks: 110,
   ui: 120,
-  browser: 130,
   talk: 140,
   channels: 150,
   skills: 200,
@@ -208,12 +204,8 @@ const FIELD_LABELS: Record<string, string> = {
   "gateway.http.endpoints.chatCompletions.enabled": "OpenAI Chat Completions Endpoint",
   "gateway.reload.mode": "Config Reload Mode",
   "gateway.reload.debounceMs": "Config Reload Debounce (ms)",
-  "gateway.nodes.browser.mode": "Gateway Node Browser Mode",
-  "gateway.nodes.browser.node": "Gateway Node Browser Pin",
   "gateway.nodes.allowCommands": "Gateway Node Allowlist (Extra Commands)",
   "gateway.nodes.denyCommands": "Gateway Node Denylist",
-  "nodeHost.browserProxy.enabled": "Node Browser Proxy Enabled",
-  "nodeHost.browserProxy.allowProfiles": "Node Browser Proxy Allowed Profiles",
   "skills.load.watch": "Watch Skills",
   "skills.load.watchDebounceMs": "Skills Watch Debounce (ms)",
   "agents.defaults.workspace": "Workspace",
@@ -309,11 +301,6 @@ const FIELD_LABELS: Record<string, string> = {
   "ui.seamColor": "Accent Color",
   "ui.assistant.name": "Assistant Name",
   "ui.assistant.avatar": "Assistant Avatar",
-  "browser.evaluateEnabled": "Browser Evaluate Enabled",
-  "browser.snapshotDefaults": "Browser Snapshot Defaults",
-  "browser.snapshotDefaults.mode": "Browser Snapshot Mode",
-  "browser.remoteCdpTimeoutMs": "Remote CDP Timeout (ms)",
-  "browser.remoteCdpHandshakeTimeoutMs": "Remote CDP Handshake Timeout (ms)",
   "session.dmScope": "DM Session Scope",
   "session.agentToAgent.maxPingPongTurns": "Agent-to-Agent Ping-Pong Turns",
   "messages.ackReaction": "Ack Reaction Emoji",
@@ -324,12 +311,7 @@ const FIELD_LABELS: Record<string, string> = {
   "channels.telegram": "Telegram",
   "channels.telegram.customCommands": "Telegram Custom Commands",
   "channels.discord": "Discord",
-  "channels.slack": "Slack",
-  "channels.mattermost": "Mattermost",
-  "channels.signal": "Signal",
-  "channels.imessage": "iMessage",
-  "channels.bluebubbles": "BlueBubbles",
-  "channels.msteams": "MS Teams",
+  // OpenJoey: forbidden channels removed
   "channels.telegram.botToken": "Telegram Bot Token",
   "channels.telegram.dmPolicy": "Telegram DM Policy",
   "channels.telegram.streamMode": "Telegram Draft Stream Mode",
@@ -344,11 +326,7 @@ const FIELD_LABELS: Record<string, string> = {
   "channels.telegram.timeoutSeconds": "Telegram API Timeout (seconds)",
   "channels.telegram.capabilities.inlineButtons": "Telegram Inline Buttons",
   "channels.whatsapp.dmPolicy": "WhatsApp DM Policy",
-  "channels.whatsapp.selfChatMode": "WhatsApp Self-Phone Mode",
-  "channels.whatsapp.debounceMs": "WhatsApp Message Debounce (ms)",
-  "channels.signal.dmPolicy": "Signal DM Policy",
-  "channels.imessage.dmPolicy": "iMessage DM Policy",
-  "channels.bluebubbles.dmPolicy": "BlueBubbles DM Policy",
+  // OpenJoey: forbidden channels removed
   "channels.discord.dm.policy": "Discord DM Policy",
   "channels.discord.retry.attempts": "Discord Retry Attempts",
   "channels.discord.retry.minDelayMs": "Discord Retry Min Delay (ms)",
@@ -359,22 +337,9 @@ const FIELD_LABELS: Record<string, string> = {
   "channels.discord.intents.guildMembers": "Discord Guild Members Intent",
   "channels.discord.pluralkit.enabled": "Discord PluralKit Enabled",
   "channels.discord.pluralkit.token": "Discord PluralKit Token",
-  "channels.slack.dm.policy": "Slack DM Policy",
-  "channels.slack.allowBots": "Slack Allow Bot Messages",
+  // OpenJoey: forbidden channels removed
   "channels.discord.token": "Discord Bot Token",
-  "channels.slack.botToken": "Slack Bot Token",
-  "channels.slack.appToken": "Slack App Token",
-  "channels.slack.userToken": "Slack User Token",
-  "channels.slack.userTokenReadOnly": "Slack User Token Read Only",
-  "channels.slack.thread.historyScope": "Slack Thread History Scope",
-  "channels.slack.thread.inheritParent": "Slack Thread Parent Inheritance",
-  "channels.mattermost.botToken": "Mattermost Bot Token",
-  "channels.mattermost.baseUrl": "Mattermost Base URL",
-  "channels.mattermost.chatmode": "Mattermost Chat Mode",
-  "channels.mattermost.oncharPrefixes": "Mattermost Onchar Prefixes",
-  "channels.mattermost.requireMention": "Mattermost Require Mention",
-  "channels.signal.account": "Signal Account",
-  "channels.imessage.cliPath": "iMessage CLI Path",
+  // OpenJoey: forbidden channels removed
   "agents.list[].skills": "Agent Skill Filter",
   "agents.list[].identity.avatar": "Agent Avatar",
   "discovery.mdns.mode": "mDNS Discovery Mode",
@@ -432,16 +397,10 @@ const FIELD_HELP: Record<string, string> = {
     "Enable the OpenAI-compatible `POST /v1/chat/completions` endpoint (default: false).",
   "gateway.reload.mode": 'Hot reload strategy for config changes ("hybrid" recommended).',
   "gateway.reload.debounceMs": "Debounce window (ms) before applying config changes.",
-  "gateway.nodes.browser.mode":
-    'Node browser routing ("auto" = pick single connected browser node, "manual" = require node param, "off" = disable).',
-  "gateway.nodes.browser.node": "Pin browser routing to a specific node id or name (optional).",
   "gateway.nodes.allowCommands":
     "Extra node.invoke commands to allow beyond the gateway defaults (array of command strings).",
   "gateway.nodes.denyCommands":
     "Commands to block even if present in node claims or default allowlist.",
-  "nodeHost.browserProxy.enabled": "Expose the local browser control server via node proxy.",
-  "nodeHost.browserProxy.allowProfiles":
-    "Optional allowlist of browser profile names exposed via the node proxy.",
   "diagnostics.flags":
     'Enable targeted diagnostics logs by flag (e.g. ["telegram.http"]). Supports wildcards like "telegram.*" or "*".',
   "diagnostics.cacheTrace.enabled":
@@ -505,21 +464,6 @@ const FIELD_HELP: Record<string, string> = {
   "tools.web.fetch.firecrawl.maxAgeMs":
     "Firecrawl maxAge (ms) for cached results when supported by the API.",
   "tools.web.fetch.firecrawl.timeoutSeconds": "Timeout in seconds for Firecrawl requests.",
-  "channels.slack.allowBots":
-    "Allow bot-authored messages to trigger Slack replies (default: false).",
-  "channels.slack.thread.historyScope":
-    'Scope for Slack thread history context ("thread" isolates per thread; "channel" reuses channel history).',
-  "channels.slack.thread.inheritParent":
-    "If true, Slack thread sessions inherit the parent channel transcript (default: false).",
-  "channels.mattermost.botToken":
-    "Bot token from Mattermost System Console -> Integrations -> Bot Accounts.",
-  "channels.mattermost.baseUrl":
-    "Base URL for your Mattermost server (e.g., https://chat.example.com).",
-  "channels.mattermost.chatmode":
-    'Reply to channel messages on mention ("oncall"), on trigger chars (">" or "!") ("onchar"), or on every message ("onmessage").',
-  "channels.mattermost.oncharPrefixes": 'Trigger prefixes for onchar mode (default: [">", "!"]).',
-  "channels.mattermost.requireMention":
-    "Require @mention in channels before responding (default: true).",
   "auth.profiles": "Named auth profiles (provider + mode + optional email).",
   "auth.order": "Ordered auth profile IDs per provider (used for automatic failover).",
   "auth.cooldowns.billingBackoffHours":
@@ -681,29 +625,16 @@ const FIELD_HELP: Record<string, string> = {
     "Map canonical identities to provider-prefixed peer IDs for DM session linking (example: telegram:123456).",
   "channels.telegram.configWrites":
     "Allow Telegram to write config in response to channel events/commands (default: true).",
-  "channels.slack.configWrites":
-    "Allow Slack to write config in response to channel events/commands (default: true).",
-  "channels.mattermost.configWrites":
-    "Allow Mattermost to write config in response to channel events/commands (default: true).",
+  // OpenJoey: forbidden channels removed
   "channels.discord.configWrites":
     "Allow Discord to write config in response to channel events/commands (default: true).",
-  "channels.whatsapp.configWrites":
-    "Allow WhatsApp to write config in response to channel events/commands (default: true).",
-  "channels.signal.configWrites":
-    "Allow Signal to write config in response to channel events/commands (default: true).",
-  "channels.imessage.configWrites":
-    "Allow iMessage to write config in response to channel events/commands (default: true).",
-  "channels.msteams.configWrites":
-    "Allow Microsoft Teams to write config in response to channel events/commands (default: true).",
   "channels.discord.commands.native": 'Override native commands for Discord (bool or "auto").',
   "channels.discord.commands.nativeSkills":
     'Override native skill commands for Discord (bool or "auto").',
   "channels.telegram.commands.native": 'Override native commands for Telegram (bool or "auto").',
   "channels.telegram.commands.nativeSkills":
     'Override native skill commands for Telegram (bool or "auto").',
-  "channels.slack.commands.native": 'Override native commands for Slack (bool or "auto").',
-  "channels.slack.commands.nativeSkills":
-    'Override native skill commands for Slack (bool or "auto").',
+  // OpenJoey: forbidden channels removed
   "session.agentToAgent.maxPingPongTurns":
     "Max reply-back turns between requester and target (0–5).",
   "channels.telegram.customCommands":
@@ -738,12 +669,7 @@ const FIELD_HELP: Record<string, string> = {
   "channels.whatsapp.selfChatMode": "Same-phone setup (bot uses your personal WhatsApp number).",
   "channels.whatsapp.debounceMs":
     "Debounce window (ms) for batching rapid consecutive messages from the same sender (0 to disable).",
-  "channels.signal.dmPolicy":
-    'Direct message access control ("pairing" recommended). "open" requires channels.signal.allowFrom=["*"].',
-  "channels.imessage.dmPolicy":
-    'Direct message access control ("pairing" recommended). "open" requires channels.imessage.allowFrom=["*"].',
-  "channels.bluebubbles.dmPolicy":
-    'Direct message access control ("pairing" recommended). "open" requires channels.bluebubbles.allowFrom=["*"].',
+  // OpenJoey: forbidden channels removed
   "channels.discord.dm.policy":
     'Direct message access control ("pairing" recommended). "open" requires channels.discord.dm.allowFrom=["*"].',
   "channels.discord.retry.attempts":
@@ -760,8 +686,7 @@ const FIELD_HELP: Record<string, string> = {
     "Resolve PluralKit proxied messages and treat system members as distinct senders.",
   "channels.discord.pluralkit.token":
     "Optional PluralKit token for resolving private systems or members.",
-  "channels.slack.dm.policy":
-    'Direct message access control ("pairing" recommended). "open" requires channels.slack.dm.allowFrom=["*"].',
+  // OpenJoey: forbidden channels removed
 };
 
 const FIELD_PLACEHOLDERS: Record<string, string> = {
@@ -771,7 +696,6 @@ const FIELD_PLACEHOLDERS: Record<string, string> = {
   "gateway.controlUi.basePath": "/openclaw",
   "gateway.controlUi.root": "dist/control-ui",
   "gateway.controlUi.allowedOrigins": "https://control.example.com",
-  "channels.mattermost.baseUrl": "https://chat.example.com",
   "agents.list[].identity.avatar": "avatars/openclaw.png",
 };
 

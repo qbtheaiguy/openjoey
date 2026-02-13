@@ -13,8 +13,8 @@ export function stripTelegramInternalPrefixes(to: string): string {
         return trimmed.replace(/^(telegram|tg):/i, "").trim();
       }
       // Legacy internal form: `telegram:group:<id>` (still emitted by session keys).
-      if (strippedTelegramPrefix && /^group:/i.test(trimmed)) {
-        return trimmed.replace(/^group:/i, "").trim();
+      if (strippedTelegramPrefix && /^(group|channel):/i.test(trimmed)) {
+        return trimmed.replace(/^(group|channel):/i, "").trim();
       }
       return trimmed;
     })();
@@ -53,4 +53,21 @@ export function parseTelegramTarget(to: string): TelegramTarget {
   }
 
   return { chatId: normalized };
+}
+
+/** Normalizes a Telegram target string for canonical storage/lookup. */
+export function normalizeTelegramTarget(to: string): string | undefined {
+  const parsed = parseTelegramTarget(to);
+  let chatId = parsed.chatId.trim();
+  if (!chatId) {
+    return undefined;
+  }
+  // Usernames are case-insensitive.
+  if (chatId.startsWith("@")) {
+    chatId = chatId.toLowerCase();
+  }
+  if (parsed.messageThreadId != null) {
+    return `${chatId}:topic:${parsed.messageThreadId}`;
+  }
+  return chatId;
 }

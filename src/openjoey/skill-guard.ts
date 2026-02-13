@@ -1,10 +1,3 @@
-/**
- * OpenJoey Skill Guard
- *
- * Intercepts skill execution requests and enforces tier + quota limits.
- * Part of the V2 Multi-Layer Enforcement Architecture.
- */
-
 import type { OpenJoeyRole } from "./session-isolation.js";
 import { getAllowedSkillsForRole } from "./session-isolation.js";
 import { getOpenJoeyDB } from "./supabase-client.js";
@@ -13,7 +6,6 @@ export interface SkillExecutionContext {
   telegramId: number;
   userId: string;
   tier: string;
-  /** Admin = all skills allowed; subscriber = trading/research/chat only. */
   role: OpenJoeyRole;
   skillName: string;
   userQuery: string;
@@ -26,7 +18,8 @@ export interface SkillGuardDecision {
   costTier: "free" | "standard" | "expensive";
 }
 
-// Skill definitions with metadata
+type CostTier = SkillGuardDecision["costTier"];
+
 export const SKILL_METADATA: Record<
   string,
   {
@@ -34,7 +27,6 @@ export const SKILL_METADATA: Record<
     costTier: "free" | "standard" | "expensive";
   }
 > = {
-  // Trading Skills (Most tiers)
   "signal-guru": { displayName: "Signal Guru", costTier: "standard" },
   "research-guru": { displayName: "Research Guru", costTier: "standard" },
   "crypto-guru": { displayName: "Crypto Guru", costTier: "standard" },
@@ -51,23 +43,16 @@ export const SKILL_METADATA: Record<
   "market-scanner": { displayName: "Market Scanner", costTier: "standard" },
   "news-alerts": { displayName: "News Alerts", costTier: "standard" },
   "economic-calendar": { displayName: "Economic Calendar", costTier: "standard" },
-
-  // Subscriber-only skills
   "unusual-options": { displayName: "Unusual Options", costTier: "standard" },
   "central-bank-watch": { displayName: "Central Bank Watch", costTier: "standard" },
   "correlation-tracker": { displayName: "Correlation Tracker", costTier: "standard" },
   "futures-analyzer": { displayName: "Futures Analyzer", costTier: "standard" },
   "cot-analyzer": { displayName: "COT Analyzer", costTier: "standard" },
-
-  // Premium-only skills
   "options-guru": { displayName: "Options Guru", costTier: "expensive" },
   "options-strategy": { displayName: "Options Strategy", costTier: "expensive" },
   "trading-god-pro": { displayName: "Trading God Pro", costTier: "expensive" },
   edy: { displayName: "Edy", costTier: "standard" },
 };
-
-// Daily limits per tier (calls per day)
-// -1 = unlimited
 const DAILY_LIMITS: Record<string, { standard: number; expensive: number }> = {
   trial: { standard: 50, expensive: 10 },
   free: { standard: 5, expensive: 1 },
@@ -76,41 +61,64 @@ const DAILY_LIMITS: Record<string, { standard: number; expensive: number }> = {
   premium: { standard: -1, expensive: 100 },
 };
 
-/**
- * Check if a user can use a specific skill based on tier and quotas.
- */
+const ALLOWED_CATEGORIES = new Set(["trading", "research", "alerts", "crypto", "options"]);
+
 export async function guardSkillExecution(ctx: SkillExecutionContext): Promise<SkillGuardDecision> {
   const db = getOpenJoeyDB();
 
-  // 1. Fetch skill metadata from DB or fallback
   let skillMeta = SKILL_METADATA[ctx.skillName];
   try {
     const catalogRow = await db.getSkillMetadata(ctx.skillName);
     if (catalogRow) {
+      const costTier: CostTier =
+        catalogRow.cost_tier === "free" ||
+        catalogRow.cost_tier === "standard" ||
+        catalogRow.cost_tier === "expensive"
+          ? catalogRow.cost_tier
+          : "standard";
       skillMeta = {
         displayName: catalogRow.display_name,
-        costTier: catalogRow.cost_tier as any,
+        costTier,
       };
     }
   } catch (err) {
     console.error("[openjoey] failed to fetch skill metadata from DB:", err);
   }
 
-  // 2. Check role-based skill access (admin = all, subscriber = trading/research/chat only)
   const allowedSkills = getAllowedSkillsForRole(ctx.role);
   if (allowedSkills !== undefined && !allowedSkills.includes(ctx.skillName)) {
     const displayName = skillMeta?.displayName || ctx.skillName;
     return {
       allowed: false,
-      blockMessage: `🔒 ${displayName} is not available. Available categories: trading, research, chat.`,
+      blockMessage: `🔒 ${displayName} is not available. Available categories: trading, research, alerts, crypto, options.`,
       shouldLogUsage: false,
       costTier: skillMeta?.costTier || "standard",
     };
   }
 
+  if (ctx.role !== "admin") {
+    try {
+      const rows = await db.get<{ category: string | null }>(
+        "skill_catalog",
+        `select=category&id=eq.${encodeURIComponent(ctx.skillName)}&limit=1`,
+      );
+      const category = rows[0]?.category ?? null;
+      if (category && !ALLOWED_CATEGORIES.has(category)) {
+        const displayName = skillMeta?.displayName || ctx.skillName;
+        return {
+          allowed: false,
+          blockMessage: `🔒 ${displayName} is not available. Available categories: trading, research, alerts, crypto, options.`,
+          shouldLogUsage: false,
+          costTier: skillMeta?.costTier || "standard",
+        };
+      }
+    } catch (err) {
+      console.error("[openjoey] failed to fetch skill category from DB:", err);
+    }
+  }
+
   const costTier = skillMeta?.costTier ?? "standard";
 
-  // 3. Check daily quotas (Resource-Based Access Control)
   const limits = DAILY_LIMITS[ctx.tier] || DAILY_LIMITS.free;
 
   try {
@@ -138,7 +146,6 @@ export async function guardSkillExecution(ctx: SkillExecutionContext): Promise<S
       }
     }
   } catch (err) {
-    // Fail open - don't block users due to database errors
     console.error("[openjoey] quota check failed:", err);
   }
 
@@ -149,9 +156,6 @@ export async function guardSkillExecution(ctx: SkillExecutionContext): Promise<S
   };
 }
 
-/**
- * Log the execution of a skill and increment quota counters.
- */
 export async function logSkillExecution(
   ctx: SkillExecutionContext,
   costTier: "free" | "standard" | "expensive",
@@ -161,8 +165,6 @@ export async function logSkillExecution(
   errorMessage?: string,
 ): Promise<void> {
   const db = getOpenJoeyDB();
-
-  // Cost estimation (rough, for analytics)
   const costMap = { free: 0, standard: 0.05, expensive: 0.15 };
   const cost = costMap[costTier];
 
@@ -176,7 +178,6 @@ export async function logSkillExecution(
       skill_category: ctx.tier === "premium" ? "premium" : "standard",
     });
 
-    // Increment quota counters
     await db.incrementQuota(ctx.userId, costTier);
   } catch (err) {
     console.error("[openjoey] failed to log skill usage:", err);

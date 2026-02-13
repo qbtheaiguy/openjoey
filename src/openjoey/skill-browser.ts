@@ -91,7 +91,9 @@ export async function buildSkillsOverview(userFavorites: string[]): Promise<Skil
   const grouped = new Map<string, SkillEntry[]>();
   for (const skill of skills) {
     const cat = skill.category;
-    if (!grouped.has(cat)) grouped.set(cat, []);
+    if (!grouped.has(cat)) {
+      grouped.set(cat, []);
+    }
     grouped.get(cat)!.push(skill);
   }
 
@@ -191,7 +193,9 @@ export async function buildSkillDetailView(
 
   let text = `\u{1F9E0} *${displayName}*\n\n`;
   text += `${description}\n\n`;
-  if (isFav) text += "\u2B50 In favorites\n";
+  if (isFav) {
+    text += "\u2B50 In favorites\n";
+  }
 
   const keyboard: KeyboardButton[][] = [
     [

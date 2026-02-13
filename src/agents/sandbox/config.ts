@@ -1,6 +1,5 @@
 import type { OpenClawConfig } from "../../config/config.js";
 import type {
-  SandboxBrowserConfig,
   SandboxConfig,
   SandboxDockerConfig,
   SandboxPruneConfig,
@@ -8,12 +7,6 @@ import type {
 } from "./types.js";
 import { resolveAgentConfig } from "../agent-scope.js";
 import {
-  DEFAULT_SANDBOX_BROWSER_AUTOSTART_TIMEOUT_MS,
-  DEFAULT_SANDBOX_BROWSER_CDP_PORT,
-  DEFAULT_SANDBOX_BROWSER_IMAGE,
-  DEFAULT_SANDBOX_BROWSER_NOVNC_PORT,
-  DEFAULT_SANDBOX_BROWSER_PREFIX,
-  DEFAULT_SANDBOX_BROWSER_VNC_PORT,
   DEFAULT_SANDBOX_CONTAINER_PREFIX,
   DEFAULT_SANDBOX_IDLE_HOURS,
   DEFAULT_SANDBOX_IMAGE,
@@ -81,35 +74,6 @@ export function resolveSandboxDockerConfig(params: {
   };
 }
 
-export function resolveSandboxBrowserConfig(params: {
-  scope: SandboxScope;
-  globalBrowser?: Partial<SandboxBrowserConfig>;
-  agentBrowser?: Partial<SandboxBrowserConfig>;
-}): SandboxBrowserConfig {
-  const agentBrowser = params.scope === "shared" ? undefined : params.agentBrowser;
-  const globalBrowser = params.globalBrowser;
-  return {
-    enabled: agentBrowser?.enabled ?? globalBrowser?.enabled ?? false,
-    image: agentBrowser?.image ?? globalBrowser?.image ?? DEFAULT_SANDBOX_BROWSER_IMAGE,
-    containerPrefix:
-      agentBrowser?.containerPrefix ??
-      globalBrowser?.containerPrefix ??
-      DEFAULT_SANDBOX_BROWSER_PREFIX,
-    cdpPort: agentBrowser?.cdpPort ?? globalBrowser?.cdpPort ?? DEFAULT_SANDBOX_BROWSER_CDP_PORT,
-    vncPort: agentBrowser?.vncPort ?? globalBrowser?.vncPort ?? DEFAULT_SANDBOX_BROWSER_VNC_PORT,
-    noVncPort:
-      agentBrowser?.noVncPort ?? globalBrowser?.noVncPort ?? DEFAULT_SANDBOX_BROWSER_NOVNC_PORT,
-    headless: agentBrowser?.headless ?? globalBrowser?.headless ?? false,
-    enableNoVnc: agentBrowser?.enableNoVnc ?? globalBrowser?.enableNoVnc ?? true,
-    allowHostControl: agentBrowser?.allowHostControl ?? globalBrowser?.allowHostControl ?? false,
-    autoStart: agentBrowser?.autoStart ?? globalBrowser?.autoStart ?? true,
-    autoStartTimeoutMs:
-      agentBrowser?.autoStartTimeoutMs ??
-      globalBrowser?.autoStartTimeoutMs ??
-      DEFAULT_SANDBOX_BROWSER_AUTOSTART_TIMEOUT_MS,
-  };
-}
-
 export function resolveSandboxPruneConfig(params: {
   scope: SandboxScope;
   globalPrune?: Partial<SandboxPruneConfig>;
@@ -153,11 +117,6 @@ export function resolveSandboxConfigForAgent(
       scope,
       globalDocker: agent?.docker,
       agentDocker: agentSandbox?.docker,
-    }),
-    browser: resolveSandboxBrowserConfig({
-      scope,
-      globalBrowser: agent?.browser,
-      agentBrowser: agentSandbox?.browser,
     }),
     tools: {
       allow: toolPolicy.allow,

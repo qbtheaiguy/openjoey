@@ -125,23 +125,6 @@ export const SandboxDockerSchema = z
   .strict()
   .optional();
 
-export const SandboxBrowserSchema = z
-  .object({
-    enabled: z.boolean().optional(),
-    image: z.string().optional(),
-    containerPrefix: z.string().optional(),
-    cdpPort: z.number().int().positive().optional(),
-    vncPort: z.number().int().positive().optional(),
-    noVncPort: z.number().int().positive().optional(),
-    headless: z.boolean().optional(),
-    enableNoVnc: z.boolean().optional(),
-    allowHostControl: z.boolean().optional(),
-    autoStart: z.boolean().optional(),
-    autoStartTimeoutMs: z.number().int().positive().optional(),
-  })
-  .strict()
-  .optional();
-
 export const SandboxPruneSchema = z
   .object({
     idleHours: z.number().int().nonnegative().optional(),
@@ -245,7 +228,6 @@ export const AgentSandboxSchema = z
     perSession: z.boolean().optional(),
     workspaceRoot: z.string().optional(),
     docker: SandboxDockerSchema,
-    browser: SandboxBrowserSchema,
     prune: SandboxPruneSchema,
   })
   .strict()
@@ -267,10 +249,9 @@ export const AgentToolsSchema = z
       .optional(),
     exec: z
       .object({
-        host: z.enum(["sandbox", "gateway", "node"]).optional(),
+        host: z.enum(["sandbox", "gateway"]).optional(),
         security: z.enum(["deny", "allowlist", "full"]).optional(),
         ask: z.enum(["off", "on-miss", "always"]).optional(),
-        node: z.string().optional(),
         pathPrepend: z.array(z.string()).optional(),
         safeBins: z.array(z.string()).optional(),
         backgroundMs: z.number().int().positive().optional(),
@@ -519,10 +500,9 @@ export const ToolsSchema = z
       .optional(),
     exec: z
       .object({
-        host: z.enum(["sandbox", "gateway", "node"]).optional(),
+        host: z.enum(["sandbox", "gateway"]).optional(),
         security: z.enum(["deny", "allowlist", "full"]).optional(),
         ask: z.enum(["off", "on-miss", "always"]).optional(),
-        node: z.string().optional(),
         pathPrepend: z.array(z.string()).optional(),
         safeBins: z.array(z.string()).optional(),
         backgroundMs: z.number().int().positive().optional(),

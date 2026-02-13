@@ -25,7 +25,8 @@ export type ChannelSetupInput = {
   signalNumber?: string;
   cliPath?: string;
   dbPath?: string;
-  service?: "imessage" | "sms" | "auto";
+  // OpenJoey: iMessage/SMS removed - only Telegram, Discord, WhatsApp, Web supported
+  service?: string;
   region?: string;
   authDir?: string;
   httpUrl?: string;

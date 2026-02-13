@@ -1,12 +1,10 @@
 import fs from "node:fs/promises";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { SandboxContext, SandboxWorkspaceInfo } from "./types.js";
-import { DEFAULT_BROWSER_EVALUATE_ENABLED } from "../../browser/constants.js";
 import { defaultRuntime } from "../../runtime.js";
 import { resolveUserPath } from "../../utils.js";
 import { syncSkillsToWorkspace } from "../skills.js";
 import { DEFAULT_AGENT_WORKSPACE_DIR } from "../workspace.js";
-import { ensureSandboxBrowser } from "./browser.js";
 import { resolveSandboxConfigForAgent } from "./config.js";
 import { ensureSandboxContainer } from "./docker.js";
 import { maybePruneSandboxes } from "./prune.js";
@@ -73,16 +71,6 @@ export async function resolveSandboxContext(params: {
     cfg,
   });
 
-  const evaluateEnabled =
-    params.config?.browser?.evaluateEnabled ?? DEFAULT_BROWSER_EVALUATE_ENABLED;
-  const browser = await ensureSandboxBrowser({
-    scopeKey,
-    workspaceDir,
-    agentWorkspaceDir,
-    cfg,
-    evaluateEnabled,
-  });
-
   return {
     enabled: true,
     sessionKey: rawSessionKey,
@@ -93,8 +81,6 @@ export async function resolveSandboxContext(params: {
     containerWorkdir: cfg.docker.workdir,
     docker: cfg.docker,
     tools: cfg.tools,
-    browserAllowHostControl: cfg.browser.allowHostControl,
-    browser: browser ?? undefined,
   };
 }
 

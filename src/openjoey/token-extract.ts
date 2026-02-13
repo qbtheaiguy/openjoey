@@ -76,7 +76,9 @@ const STOP_WORDS = new Set([
  */
 export function extractTokenSymbol(text: string): string | null {
   const trimmed = text.trim();
-  if (!trimmed || trimmed.length > 60) return null;
+  if (!trimmed || trimmed.length > 60) {
+    return null;
+  }
 
   // Try structured patterns first
   for (const pattern of CHECK_PATTERNS) {

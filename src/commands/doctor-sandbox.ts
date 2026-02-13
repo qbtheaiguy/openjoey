@@ -3,12 +3,7 @@ import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { DoctorPrompter } from "./doctor-prompter.js";
-import {
-  DEFAULT_SANDBOX_BROWSER_IMAGE,
-  DEFAULT_SANDBOX_COMMON_IMAGE,
-  DEFAULT_SANDBOX_IMAGE,
-  resolveSandboxScope,
-} from "../agents/sandbox.js";
+import { DEFAULT_SANDBOX_IMAGE, resolveSandboxScope } from "../agents/sandbox.js";
 import { runCommandWithTimeout, runExec } from "../process/exec.js";
 import { note } from "../terminal/note.js";
 
@@ -94,11 +89,6 @@ function resolveSandboxDockerImage(cfg: OpenClawConfig): string {
   return image ? image : DEFAULT_SANDBOX_IMAGE;
 }
 
-function resolveSandboxBrowserImage(cfg: OpenClawConfig): string {
-  const image = cfg.agents?.defaults?.sandbox?.browser?.image?.trim();
-  return image ? image : DEFAULT_SANDBOX_BROWSER_IMAGE;
-}
-
 function updateSandboxDockerImage(cfg: OpenClawConfig, image: string): OpenClawConfig {
   return {
     ...cfg,
@@ -110,25 +100,6 @@ function updateSandboxDockerImage(cfg: OpenClawConfig, image: string): OpenClawC
           ...cfg.agents?.defaults?.sandbox,
           docker: {
             ...cfg.agents?.defaults?.sandbox?.docker,
-            image,
-          },
-        },
-      },
-    },
-  };
-}
-
-function updateSandboxBrowserImage(cfg: OpenClawConfig, image: string): OpenClawConfig {
-  return {
-    ...cfg,
-    agents: {
-      ...cfg.agents,
-      defaults: {
-        ...cfg.agents?.defaults,
-        sandbox: {
-          ...cfg.agents?.defaults?.sandbox,
-          browser: {
-            ...cfg.agents?.defaults?.sandbox?.browser,
             image,
           },
         },
@@ -200,12 +171,7 @@ export async function maybeRepairSandboxImages(
     {
       kind: "base",
       image: dockerImage,
-      buildScript:
-        dockerImage === DEFAULT_SANDBOX_COMMON_IMAGE
-          ? "scripts/sandbox-common-setup.sh"
-          : dockerImage === DEFAULT_SANDBOX_IMAGE
-            ? "scripts/sandbox-setup.sh"
-            : undefined,
+      buildScript: dockerImage === DEFAULT_SANDBOX_IMAGE ? "scripts/sandbox-setup.sh" : undefined,
       updateConfig: (image) => {
         next = updateSandboxDockerImage(next, image);
         changes.push(`Updated agents.defaults.sandbox.docker.image → ${image}`);
@@ -214,22 +180,6 @@ export async function maybeRepairSandboxImages(
     runtime,
     prompter,
   );
-
-  if (sandbox.browser?.enabled) {
-    await handleMissingSandboxImage(
-      {
-        kind: "browser",
-        image: resolveSandboxBrowserImage(cfg),
-        buildScript: "scripts/sandbox-browser-setup.sh",
-        updateConfig: (image) => {
-          next = updateSandboxBrowserImage(next, image);
-          changes.push(`Updated agents.defaults.sandbox.browser.image → ${image}`);
-        },
-      },
-      runtime,
-      prompter,
-    );
-  }
 
   if (changes.length > 0) {
     note(changes.join("\n"), "Doctor changes");
@@ -262,9 +212,6 @@ export function noteSandboxScopeWarnings(cfg: OpenClawConfig) {
     const overrides: string[] = [];
     if (agentSandbox.docker && Object.keys(agentSandbox.docker).length > 0) {
       overrides.push("docker");
-    }
-    if (agentSandbox.browser && Object.keys(agentSandbox.browser).length > 0) {
-      overrides.push("browser");
     }
     if (agentSandbox.prune && Object.keys(agentSandbox.prune).length > 0) {
       overrides.push("prune");

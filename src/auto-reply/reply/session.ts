@@ -3,7 +3,6 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type { OpenClawConfig } from "../../config/config.js";
-import type { TtsAutoMode } from "../../config/types.tts.js";
 import type { MsgContext, TemplateContext } from "../templating.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { normalizeChatType } from "../../channels/chat-type.js";
@@ -132,13 +131,12 @@ export async function initSessionState(params: {
   let persistedThinking: string | undefined;
   let persistedVerbose: string | undefined;
   let persistedReasoning: string | undefined;
-  let persistedTtsAuto: TtsAutoMode | undefined;
   let persistedModelOverride: string | undefined;
   let persistedProviderOverride: string | undefined;
 
   const normalizedChatType = normalizeChatType(ctx.ChatType);
   const isGroup =
-    normalizedChatType != null && normalizedChatType !== "direct" ? true : Boolean(groupResolution);
+    normalizedChatType === "group" || normalizedChatType === "channel" || Boolean(groupResolution);
   // Prefer CommandBody/RawBody (clean message) for command detection; fall back
   // to Body which may contain structural context (history, sender labels).
   const commandSource = ctx.BodyForCommands ?? ctx.CommandBody ?? ctx.RawBody ?? ctx.Body ?? "";
@@ -191,6 +189,26 @@ export async function initSessionState(params: {
       resetTriggered = true;
       break;
     }
+    // Handle Slack mentions at the start of the message (e.g., "<@U123> /reset")
+    if (ctx.Provider === "slack" && trimmedBody.startsWith("<@")) {
+      const mentionEndIndex = trimmedBody.indexOf(">") + 1;
+      if (mentionEndIndex > 0) {
+        const afterMention = trimmedBody.slice(mentionEndIndex).trim();
+        const afterMentionLower = afterMention.toLowerCase();
+        if (afterMentionLower === triggerLower) {
+          isNewSession = true;
+          bodyStripped = "";
+          resetTriggered = true;
+          break;
+        }
+        if (afterMentionLower.startsWith(triggerPrefixLower)) {
+          isNewSession = true;
+          bodyStripped = afterMention.slice(trigger.length).trimStart();
+          resetTriggered = true;
+          break;
+        }
+      }
+    }
   }
 
   sessionKey = resolveSessionKey(sessionScope, sessionCtxForState, mainKey);
@@ -229,7 +247,6 @@ export async function initSessionState(params: {
     persistedThinking = entry.thinkingLevel;
     persistedVerbose = entry.verboseLevel;
     persistedReasoning = entry.reasoningLevel;
-    persistedTtsAuto = entry.ttsAuto;
     persistedModelOverride = entry.modelOverride;
     persistedProviderOverride = entry.providerOverride;
   } else {
@@ -267,7 +284,6 @@ export async function initSessionState(params: {
     thinkingLevel: persistedThinking ?? baseEntry?.thinkingLevel,
     verboseLevel: persistedVerbose ?? baseEntry?.verboseLevel,
     reasoningLevel: persistedReasoning ?? baseEntry?.reasoningLevel,
-    ttsAuto: persistedTtsAuto ?? baseEntry?.ttsAuto,
     responseUsage: baseEntry?.responseUsage,
     modelOverride: persistedModelOverride ?? baseEntry?.modelOverride,
     providerOverride: persistedProviderOverride ?? baseEntry?.providerOverride,

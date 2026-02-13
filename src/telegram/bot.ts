@@ -411,11 +411,11 @@ export function createTelegramBot(opts: TelegramBotOptions) {
           fn: () =>
             bot.api.sendMessage(chatId, hookResult.directReply!, {
               parse_mode: "Markdown",
-              ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+              reply_markup: replyMarkup,
             }),
         }).catch(() =>
           bot.api.sendMessage(chatId, hookResult.directReply!, {
-            ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+            reply_markup: replyMarkup,
           }),
         );
         if (hookResult.broadcast) {

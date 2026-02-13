@@ -1,0 +1,143 @@
+[34mℹ[39m tsdown [2mv0.20.3[22m powered by rolldown [2mv1.0.0-rc.3[22m
+[34mℹ[39m config file: [4m/Users/theaiguy/CascadeProjects/openjoey-main/tsdown.config.ts[24m 
+[34mℹ[39m entry: [34msrc/index.ts[39m
+[34mℹ[39m target: [34mnode22.12.0[39m
+[34mℹ[39m tsconfig: [34mtsconfig.json[39m
+[34mℹ[39m entry: [34msrc/entry.ts[39m
+[34mℹ[39m target: [34mnode22.12.0[39m
+[34mℹ[39m tsconfig: [34mtsconfig.json[39m
+[34mℹ[39m entry: [34msrc/infra/warning-filter.ts[39m
+[34mℹ[39m target: [34mnode22.12.0[39m
+[34mℹ[39m tsconfig: [34mtsconfig.json[39m
+[34mℹ[39m entry: [34msrc/plugin-sdk/index.ts[39m
+[34mℹ[39m target: [34mnode22.12.0[39m
+[34mℹ[39m tsconfig: [34mtsconfig.json[39m
+[34mℹ[39m entry: [34msrc/extensionAPI.ts[39m
+[34mℹ[39m target: [34mnode22.12.0[39m
+[34mℹ[39m tsconfig: [34mtsconfig.json[39m
+[34mℹ[39m Build start
+[34mℹ[39m Cleaning 1 files
+[34mℹ[39m [2mdist/[22m[1mwarning-filter.js[22m  [2m1.74 kB[22m [2m│ gzip: 0.64 kB[22m
+[34mℹ[39m 1 files, total: 1.74 kB
+[32m✔[39m Build complete in [32m150ms[39m
+
+[41m ERROR [49m Error: Build failed with 6 errors:
+
+[31m[UNRESOLVED_IMPORT] Error:[0m Could not resolve './server-browser.js' in src/gateway/server-reload-handlers.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/gateway/server-reload-handlers.ts:16:52 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m16 │[0m [38;5;249mi[0m[38;5;249mm[0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249m{[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249mB[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249ms[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mS[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mI[0m[38;5;249mf[0m[38;5;249mE[0m[38;5;249mn[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249md[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"./server-browser.js"[38;5;249m;[0m
+ [38;5;240m   │[0m                                                    ──────────┬──────────  
+ [38;5;240m   │[0m                                                              ╰──────────── Module not found.
+ [38;5;240m   │[0m 
+ [38;5;240m   │[0m [38;5;115mHelp[0m: 'src/gateway/server-reload-handlers.ts' is imported by the following path:
+ [38;5;240m   │[0m         - src/gateway/server-reload-handlers.ts
+ [38;5;240m   │[0m         - src/gateway/server.impl.ts
+ [38;5;240m   │[0m         - src/gateway/server.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli/run.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli/register.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli.ts
+ [38;5;240m   │[0m         - src/cli/program/register.subclis.ts
+ [38;5;240m   │[0m         - src/cli/program/command-registry.ts
+ [38;5;240m   │[0m         - src/cli/program/build-program.ts
+ [38;5;240m   │[0m         - src/cli/program.ts
+ [38;5;240m   │[0m         - src/index.ts
+[38;5;246m────╯[0m
+
+[31m[UNRESOLVED_IMPORT] Error:[0m Could not resolve './server-browser.js' in src/gateway/server-startup.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/gateway/server-startup.ts:20:52 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m20 │[0m [38;5;249mi[0m[38;5;249mm[0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249m{[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249mB[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249ms[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mS[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mI[0m[38;5;249mf[0m[38;5;249mE[0m[38;5;249mn[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249md[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"./server-browser.js"[38;5;249m;[0m
+ [38;5;240m   │[0m                                                    ──────────┬──────────  
+ [38;5;240m   │[0m                                                              ╰──────────── Module not found.
+ [38;5;240m   │[0m 
+ [38;5;240m   │[0m [38;5;115mHelp[0m: 'src/gateway/server-startup.ts' is imported by the following path:
+ [38;5;240m   │[0m         - src/gateway/server-startup.ts
+ [38;5;240m   │[0m         - src/gateway/server.impl.ts
+ [38;5;240m   │[0m         - src/gateway/server.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli/run.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli/register.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli.ts
+ [38;5;240m   │[0m         - src/cli/program/register.subclis.ts
+ [38;5;240m   │[0m         - src/cli/program/command-registry.ts
+ [38;5;240m   │[0m         - src/cli/program/build-program.ts
+ [38;5;240m   │[0m         - src/cli/program.ts
+ [38;5;240m   │[0m         - src/index.ts
+[38;5;246m────╯[0m
+
+[31m[UNRESOLVED_IMPORT] Error:[0m Could not resolve '../canvas-host/a2ui.js' in src/gateway/server-runtime-state.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/gateway/server-runtime-state.ts:14:34 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m14 │[0m [38;5;249mi[0m[38;5;249mm[0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mC[0m[38;5;249mA[0m[38;5;249mN[0m[38;5;249mV[0m[38;5;249mA[0m[38;5;249mS[0m[38;5;249m_[0m[38;5;249mH[0m[38;5;249mO[0m[38;5;249mS[0m[38;5;249mT[0m[38;5;249m_[0m[38;5;249mP[0m[38;5;249mA[0m[38;5;249mT[0m[38;5;249mH[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"../canvas-host/a2ui.js"[38;5;249m;[0m
+ [38;5;240m   │[0m                                  ────────────┬───────────  
+ [38;5;240m   │[0m                                              ╰───────────── Module not found.
+ [38;5;240m   │[0m 
+ [38;5;240m   │[0m [38;5;115mHelp[0m: 'src/gateway/server-runtime-state.ts' is imported by the following path:
+ [38;5;240m   │[0m         - src/gateway/server-runtime-state.ts
+ [38;5;240m   │[0m         - src/gateway/server.impl.ts
+ [38;5;240m   │[0m         - src/gateway/server.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli/run.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli/register.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli.ts
+ [38;5;240m   │[0m         - src/cli/program/register.subclis.ts
+ [38;5;240m   │[0m         - src/cli/program/command-registry.ts
+ [38;5;240m   │[0m         - src/cli/program/build-program.ts
+ [38;5;240m   │[0m         - src/cli/program.ts
+ [38;5;240m   │[0m         - src/index.ts
+[38;5;246m────╯[0m
+
+[31m[UNRESOLVED_IMPORT] Error:[0m Could not resolve '../canvas-host/server.js' in src/gateway/server-runtime-state.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/gateway/server-runtime-state.ts:15:65 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m15 │[0m [38;5;249mi[0m[38;5;249mm[0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249my[0m[38;5;249mp[0m[38;5;249me[0m[38;5;249m [0m[38;5;249mC[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249mv[0m[38;5;249ma[0m[38;5;249ms[0m[38;5;249mH[0m[38;5;249mo[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249mH[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249md[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mC[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249mv[0m[38;5;249ma[0m[38;5;249ms[0m[38;5;249mH[0m[38;5;249mo[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249mH[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249md[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"../canvas-host/server.js"[38;5;249m;[0m
+ [38;5;240m   │[0m                                                                 ─────────────┬────────────  
+ [38;5;240m   │[0m                                                                              ╰────────────── Module not found.
+ [38;5;240m   │[0m 
+ [38;5;240m   │[0m [38;5;115mHelp[0m: 'src/gateway/server-runtime-state.ts' is imported by the following path:
+ [38;5;240m   │[0m         - src/gateway/server-runtime-state.ts
+ [38;5;240m   │[0m         - src/gateway/server.impl.ts
+ [38;5;240m   │[0m         - src/gateway/server.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli/run.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli/register.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli.ts
+ [38;5;240m   │[0m         - src/cli/program/register.subclis.ts
+ [38;5;240m   │[0m         - src/cli/program/command-registry.ts
+ [38;5;240m   │[0m         - src/cli/program/build-program.ts
+ [38;5;240m   │[0m         - src/cli/program.ts
+ [38;5;240m   │[0m         - src/index.ts
+[38;5;246m────╯[0m
+
+[31m[UNRESOLVED_IMPORT] Error:[0m Could not resolve '../../tts/tts.js' in src/gateway/server-methods/tts.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/gateway/server-methods/tts.ts:17:8 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m17 │[0m [38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"../../tts/tts.js"[38;5;249m;[0m
+ [38;5;240m   │[0m        ─────────┬────────  
+ [38;5;240m   │[0m                 ╰────────── Module not found.
+ [38;5;240m   │[0m 
+ [38;5;240m   │[0m [38;5;115mHelp[0m: 'src/gateway/server-methods/tts.ts' is imported by the following path:
+ [38;5;240m   │[0m         - src/gateway/server-methods/tts.ts
+ [38;5;240m   │[0m         - src/gateway/server-methods.ts
+ [38;5;240m   │[0m         - src/gateway/server.impl.ts
+ [38;5;240m   │[0m         - src/gateway/server.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli/run.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli/register.ts
+ [38;5;240m   │[0m         - src/cli/gateway-cli.ts
+ [38;5;240m   │[0m         - src/cli/program/register.subclis.ts
+ [38;5;240m   │[0m         - src/cli/program/command-registry.ts
+ [38;5;240m   │[0m         - src/cli/program/build-program.ts
+ [38;5;240m   │[0m         - src/cli/program.ts
+ [38;5;240m   │[0m         - src/index.ts
+[38;5;246m────╯[0m
+
+...
+    at aggregateBindingErrorsIntoJsError (file:///Users/theaiguy/CascadeProjects/openjoey-main/node_modules/.pnpm/rolldown@1.0.0-rc.3/node_modules/rolldown/dist/shared/bindingify-input-options-CorDub0q.mjs:628:18)
+    at unwrapBindingResult (file:///Users/theaiguy/CascadeProjects/openjoey-main/node_modules/.pnpm/rolldown@1.0.0-rc.3/node_modules/rolldown/dist/shared/bindingify-input-options-CorDub0q.mjs:598:128)
+    at #build (file:///Users/theaiguy/CascadeProjects/openjoey-main/node_modules/.pnpm/rolldown@1.0.0-rc.3/node_modules/rolldown/dist/shared/rolldown-build-CGNuOAoF.mjs:3345:34)
+    at async build (file:///Users/theaiguy/CascadeProjects/openjoey-main/node_modules/.pnpm/rolldown@1.0.0-rc.3/node_modules/rolldown/dist/index.mjs:47:22)
+    at async Promise.all (index 0)
+    at async buildSingle (file:///Users/theaiguy/CascadeProjects/openjoey-main/node_modules/.pnpm/tsdown@0.20.3_@typescript+native-preview@7.0.0-dev.20260206.1_typescript@5.9.3/node_modules/tsdown/dist/build-C5RQkVSf.mjs:852:19)
+    at async Promise.all (index 0)
+    at async buildWithConfigs (file:///Users/theaiguy/CascadeProjects/openjoey-main/node_modules/.pnpm/tsdown@0.20.3_@typescript+native-preview@7.0.0-dev.20260206.1_typescript@5.9.3/node_modules/tsdown/dist/build-C5RQkVSf.mjs:813:18)
+    at async CAC.<anonymous> (file:///Users/theaiguy/CascadeProjects/openjoey-main/node_modules/.pnpm/tsdown@0.20.3_@typescript+native-preview@7.0.0-dev.20260206.1_typescript@5.9.3/node_modules/tsdown/dist/run.mjs:23:2)
+    at async runCLI (file:///Users/theaiguy/CascadeProjects/openjoey-main/node_modules/.pnpm/tsdown@0.20.3_@typescript+native-preview@7.0.0-dev.20260206.1_typescript@5.9.3/node_modules/tsdown/dist/run.mjs:47:3)
+

@@ -132,17 +132,6 @@ function buildMessagingSection(params: {
   ];
 }
 
-function buildVoiceSection(params: { isMinimal: boolean; ttsHint?: string }) {
-  if (params.isMinimal) {
-    return [];
-  }
-  const hint = params.ttsHint?.trim();
-  if (!hint) {
-    return [];
-  }
-  return ["## Voice (TTS)", hint, ""];
-}
-
 function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readToolName: string }) {
   const docsPath = params.docsPath?.trim();
   if (!docsPath || params.isMinimal) {
@@ -179,7 +168,7 @@ export function buildAgentSystemPrompt(params: {
   heartbeatPrompt?: string;
   docsPath?: string;
   workspaceNotes?: string[];
-  ttsHint?: string;
+
   /** Controls which hardcoded sections to include. Defaults to "full". */
   promptMode?: PromptMode;
   runtimeInfo?: {
@@ -513,7 +502,6 @@ export function buildAgentSystemPrompt(params: {
       runtimeChannel,
       messageToolHints: params.messageToolHints,
     }),
-    ...buildVoiceSection({ isMinimal, ttsHint: params.ttsHint }),
   ];
 
   if (extraSystemPrompt) {

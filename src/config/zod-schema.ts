@@ -12,26 +12,6 @@ import {
   SessionSendPolicySchema,
 } from "./zod-schema.session.js";
 
-const BrowserSnapshotDefaultsSchema = z
-  .object({
-    mode: z.literal("efficient").optional(),
-  })
-  .strict()
-  .optional();
-
-const NodeHostSchema = z
-  .object({
-    browserProxy: z
-      .object({
-        enabled: z.boolean().optional(),
-        allowProfiles: z.array(z.string()).optional(),
-      })
-      .strict()
-      .optional(),
-  })
-  .strict()
-  .optional();
-
 const MemoryQmdPathSchema = z
   .object({
     path: z.string(),
@@ -195,41 +175,6 @@ export const OpenClawSchema = z
       })
       .strict()
       .optional(),
-    browser: z
-      .object({
-        enabled: z.boolean().optional(),
-        evaluateEnabled: z.boolean().optional(),
-        cdpUrl: z.string().optional(),
-        remoteCdpTimeoutMs: z.number().int().nonnegative().optional(),
-        remoteCdpHandshakeTimeoutMs: z.number().int().nonnegative().optional(),
-        color: z.string().optional(),
-        executablePath: z.string().optional(),
-        headless: z.boolean().optional(),
-        noSandbox: z.boolean().optional(),
-        attachOnly: z.boolean().optional(),
-        defaultProfile: z.string().optional(),
-        snapshotDefaults: BrowserSnapshotDefaultsSchema,
-        profiles: z
-          .record(
-            z
-              .string()
-              .regex(/^[a-z0-9-]+$/, "Profile names must be alphanumeric with hyphens only"),
-            z
-              .object({
-                cdpPort: z.number().int().min(1).max(65535).optional(),
-                cdpUrl: z.string().optional(),
-                driver: z.union([z.literal("clawd"), z.literal("extension")]).optional(),
-                color: HexColorSchema,
-              })
-              .strict()
-              .refine((value) => value.cdpPort || value.cdpUrl, {
-                message: "Profile must set cdpPort or cdpUrl",
-              }),
-          )
-          .optional(),
-      })
-      .strict()
-      .optional(),
     ui: z
       .object({
         seamColor: HexColorSchema.optional(),
@@ -271,7 +216,6 @@ export const OpenClawSchema = z
       .strict()
       .optional(),
     models: ModelsConfigSchema,
-    nodeHost: NodeHostSchema,
     agents: AgentsSchema,
     tools: ToolsSchema,
     bindings: BindingsSchema,
@@ -494,15 +438,6 @@ export const OpenClawSchema = z
           .optional(),
         nodes: z
           .object({
-            browser: z
-              .object({
-                mode: z
-                  .union([z.literal("auto"), z.literal("manual"), z.literal("off")])
-                  .optional(),
-                node: z.string().optional(),
-              })
-              .strict()
-              .optional(),
             allowCommands: z.array(z.string()).optional(),
             denyCommands: z.array(z.string()).optional(),
           })
@@ -591,6 +526,14 @@ export const OpenClawSchema = z
               .strict(),
           )
           .optional(),
+      })
+      .strict()
+      .optional(),
+    openjoey: z
+      .object({
+        channels: z.array(z.string()).optional(),
+        useDeliveryRouter: z.boolean().optional(),
+        useAgentBus: z.boolean().optional(),
       })
       .strict()
       .optional(),

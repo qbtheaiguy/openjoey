@@ -65,9 +65,18 @@ export function isTelegramInlineButtonsEnabled(params: {
   );
 }
 
-export function resolveTelegramTargetChatType(target: string): "direct" | "group" | "unknown" {
-  if (!target.trim()) {
+export function resolveTelegramTargetChatType(
+  target: string,
+): "direct" | "group" | "channel" | "unknown" {
+  const trimmed = target.trim();
+  if (!trimmed) {
     return "unknown";
+  }
+  if (/^channel:/i.test(trimmed)) {
+    return "channel";
+  }
+  if (/^group:/i.test(trimmed)) {
+    return "group";
   }
   const parsed = parseTelegramTarget(target);
   const chatId = parsed.chatId.trim();
