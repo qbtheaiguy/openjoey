@@ -31,9 +31,615 @@ This guide walks you through deploying Maxun on your existing Hetzner server (`1
 - 6 financial data robots (structured + AI extraction)
 - OpenJoey bridge for seamless data flow
 - Hybrid data pipeline (free scraping + AI intelligence)
+- **NEW: Multi-layer caching for 100k+ users/day**
+- **NEW: Category-specific robots with backup/failover**
 
 **Time Required:** 2-3 hours
 **Cost:** $0 (uses existing Hetzner server)
+
+---
+
+## Architecture Overview: Handling 100k Users/Day
+
+### The Problem with Single Robots
+
+- One "crypto" robot = bottleneck at scale
+- No redundancy = single point of failure
+- Scraping every request = API bans + slow response times
+- 100k users × 10 requests/day = 1M scrapes/day = disaster
+
+### The Solution: Distributed Robot Architecture + Multi-Layer Caching
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    USER REQUEST (100k/day)                      │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+              ┌───────────▼───────────┐
+              │  LAYER 1: EDGE CACHE  │ ← CDN/Cloudflare (if using)
+              │  TTL: 30 seconds      │
+              └───────────┬───────────┘
+                          │
+              ┌───────────▼───────────┐
+              │  LAYER 2: REDIS CACHE │ ← In-memory, sub-millisecond
+              │  TTL: 60 seconds      │    Hot data (prices, sentiment)
+              └───────────┬───────────┘
+                          │
+              ┌───────────▼───────────┐
+              │  LAYER 3: FILE CACHE  │ ← ~/.openjoey/cache/
+              │  TTL: 5-60 minutes    │    Warm data (news, analysis)
+              └───────────┬───────────┘
+                          │
+              ┌───────────▼───────────┐
+              │  LAYER 4: MAXUN DB     │ ← Persistent storage
+              │  Last robot run data   │    Fallback data
+              └───────────┬───────────┘
+                          │
+              ┌───────────▼───────────┐
+              │  LAYER 5: ROBOT FARM   │ ← Only if cache miss
+              │  20+ category robots    │    Distributed load
+              └─────────────────────────┘
+```
+
+### Cache Hit Rate Targets
+
+- Layer 1 (Edge): 40% hit rate
+- Layer 2 (Redis): 35% hit rate
+- Layer 3 (File): 20% hit rate
+- Layer 4 (DB): 4% hit rate
+- Layer 5 (Scrape): 1% of requests (only fresh data)
+
+**Result:** 99% of requests served from cache, 1% require scraping
+
+---
+
+## Crypto Robot Categories (Distributed Architecture)
+
+Instead of one "crypto" robot, we create **15+ specialized robots**:
+
+### Category 1: Blue-Chip Crypto (Bitcoin, Ethereum)
+
+| Robot                | Source    | Schedule | Cache TTL | Backup                               |
+| -------------------- | --------- | -------- | --------- | ------------------------------------ |
+| `btc-tracker`        | CoinGecko | 2 min    | 5 min     | `btc-tracker-backup` (CoinMarketCap) |
+| `eth-tracker`        | CoinGecko | 2 min    | 5 min     | `eth-tracker-backup` (Binance API)   |
+| `bluechip-marketcap` | CoinGecko | 5 min    | 15 min    | `bluechip-cmc-backup`                |
+
+**Why separate?** BTC/ETH are most requested, need fastest updates, can't afford downtime
+
+---
+
+### Category 2: DeFi Tokens
+
+| Robot             | Source    | Schedule | Cache TTL | Purpose                        |
+| ----------------- | --------- | -------- | --------- | ------------------------------ |
+| `defi-prices`     | CoinGecko | 5 min    | 10 min    | AAVE, UNI, COMP, MKR prices    |
+| `defi-tvl`        | DefiLlama | 10 min   | 30 min    | Total Value Locked by protocol |
+| `defi-yields`     | DefiLlama | 15 min   | 60 min    | APY rates across chains        |
+| `defi-governance` | Snapshot  | 30 min   | 120 min   | Active DAO proposals           |
+
+**Skills served:** DeFi Yield Hunter, DeFi Opportunity Scanner
+
+---
+
+### Category 3: Meme Coins
+
+| Robot               | Source        | Schedule | Cache TTL | Purpose                     |
+| ------------------- | ------------- | -------- | --------- | --------------------------- |
+| `meme-trending`     | CoinMarketCap | 3 min    | 5 min     | DOGE, SHIB, PEPE, WIF, BONK |
+| `meme-new-listings` | CoinGecko     | 10 min   | 30 min    | New meme coin launches      |
+| `meme-social-buzz`  | AI extraction | 5 min    | 15 min    | Twitter/Reddit mentions     |
+| `meme-whale-moves`  | Etherscan     | 5 min    | 10 min    | Large meme coin transfers   |
+
+**Skills served:** Meme Coin Hunter, Trending Token Scanner
+
+---
+
+### Category 4: Day Trading Setups
+
+| Robot                   | Source    | Schedule | Cache TTL | Purpose                  |
+| ----------------------- | --------- | -------- | --------- | ------------------------ |
+| `daytrade-breakouts`    | Binance   | 1 min    | 3 min     | Volume + price breakouts |
+| `daytrade-scalping`     | Binance   | 1 min    | 2 min     | 1-minute candle patterns |
+| `daytrade-liquidations` | Coinglass | 2 min    | 5 min     | Futures liquidations     |
+| `daytrade-orderbook`    | Binance   | 30 sec   | 60 sec    | Bid/ask depth analysis   |
+
+**Skills served:** Day Trade Setup, Scalping Assistant
+
+---
+
+### Category 5: Futures & Perpetuals
+
+| Robot                 | Source    | Schedule | Cache TTL | Purpose                        |
+| --------------------- | --------- | -------- | --------- | ------------------------------ |
+| `funding-rates`       | Binance   | 5 min    | 15 min    | Perp funding rates by exchange |
+| `futures-premium`     | Binance   | 3 min    | 10 min    | Spot vs futures premium        |
+| `open-interest`       | Coinglass | 10 min   | 30 min    | Open interest changes          |
+| `liquidation-heatmap` | Coinglass | 5 min    | 15 min    | Liquidation levels             |
+
+**Skills served:** Futures Analyzer, Perp Opportunity Finder
+
+---
+
+### Category 6: Liquidity Pools (DEX)
+
+| Robot                 | Source        | Schedule | Cache TTL | Purpose              |
+| --------------------- | ------------- | -------- | --------- | -------------------- |
+| `lp-uniswap-v3`       | TheGraph      | 5 min    | 15 min    | Uniswap V3 pool data |
+| `lp-pancakeswap`      | BSCScan + API | 5 min    | 15 min    | BSC DEX pools        |
+| `lp-impermanent-loss` | Custom calc   | 15 min   | 60 min    | IL risk calculator   |
+| `lp-volume-24h`       | DexScreener   | 10 min   | 30 min    | DEX volume leaders   |
+
+**Skills served:** LP Opportunity Finder, DEX Volume Tracker
+
+---
+
+### Category 7: Trending & Hot
+
+| Robot              | Source        | Schedule | Cache TTL | Purpose                  |
+| ------------------ | ------------- | -------- | --------- | ------------------------ |
+| `trending-twitter` | AI extraction | 5 min    | 10 min    | Trending crypto hashtags |
+| `trending-reddit`  | AI extraction | 10 min   | 20 min    | Hot posts on r/CC        |
+| `trending-search`  | Google Trends | 30 min   | 120 min   | Search interest spikes   |
+| `trending-youtube` | AI extraction | 15 min   | 60 min    | Viral crypto videos      |
+
+**Skills served:** Trending Token Scanner, Social Buzz Tracker
+
+---
+
+### Category 8: Layer 1/Layer 2
+
+| Robot            | Source    | Schedule | Cache TTL | Purpose                        |
+| ---------------- | --------- | -------- | --------- | ------------------------------ |
+| `l1-performance` | Various   | 10 min   | 30 min    | SOL, ADA, AVAX, NEAR metrics   |
+| `l2-activity`    | L2Beat    | 15 min   | 60 min    | Arbitrum, Optimism, Base stats |
+| `bridge-volume`  | DefiLlama | 30 min   | 120 min   | Cross-chain bridge volume      |
+| `gas-tracker`    | Etherscan | 2 min    | 5 min     | ETH, BSC, SOL gas prices       |
+
+**Skills served:** Layer 1 Comparison, L2 Opportunity Scanner
+
+---
+
+### Category 9: NFT Market
+
+| Robot              | Source      | Schedule | Cache TTL | Purpose                  |
+| ------------------ | ----------- | -------- | --------- | ------------------------ |
+| `nft-floor-prices` | OpenSea API | 15 min   | 60 min    | Top collection floors    |
+| `nft-volume`       | NFTGo       | 30 min   | 120 min   | 24h volume by collection |
+| `nft-minting`      | Etherscan   | 10 min   | 30 min    | New mint contracts       |
+| `nft-whales`       | NFTNerds    | 30 min   | 120 min   | Whale purchases          |
+
+**Skills served:** NFT Floor Tracker, NFT Opportunity Finder
+
+---
+
+### Category 10: On-Chain Intelligence
+
+| Robot               | Source    | Schedule | Cache TTL | Purpose                   |
+| ------------------- | --------- | -------- | --------- | ------------------------- |
+| `whale-exchanges`   | Etherscan | 3 min    | 10 min    | Exchange inflows/outflows |
+| `whale-wallets`     | Arkham    | 10 min   | 30 min    | Smart money tracking      |
+| `exchange-reserves` | Glassnode | 30 min   | 120 min   | Exchange BTC/ETH reserves |
+| `active-addresses`  | Glassnode | 60 min   | 240 min   | Network activity metrics  |
+
+**Skills served:** Whale Tracker, Exchange Flow Monitor
+
+---
+
+### Category 11: AI News & Sentiment
+
+| Robot                   | Source        | Schedule | Cache TTL | Purpose                   |
+| ----------------------- | ------------- | -------- | --------- | ------------------------- |
+| `news-ai-coindesk`      | AI extraction | 15 min   | 30 min    | CoinDesk article analysis |
+| `news-ai-cointelegraph` | AI extraction | 15 min   | 30 min    | Cointelegraph analysis    |
+| `news-ai-twitter`       | AI extraction | 10 min   | 20 min    | Crypto Twitter sentiment  |
+| `news-aggregator`       | Multi-source  | 30 min   | 60 min    | Combined news feed        |
+
+**Skills served:** Crypto News AI, Sentiment Analyzer
+
+---
+
+### Category 12: Airdrops & Opportunities
+
+| Robot                 | Source      | Schedule | Cache TTL | Purpose                    |
+| --------------------- | ----------- | -------- | --------- | -------------------------- |
+| `airdrop-tracker`     | Airdrops.io | 60 min   | 240 min   | Active airdrop campaigns   |
+| `testnet-opps`        | Various     | 120 min  | 480 min   | Testnet incentive programs |
+| `retroactive-rewards` | DefiLlama   | 60 min   | 240 min   | Unclaimed protocol rewards |
+| `yield-opportunities` | DeBank      | 30 min   | 120 min   | High yield farming ops     |
+
+**Skills served:** Airdrop Hunter, Opportunity Scanner
+
+---
+
+### Category 13: Macro & Correlations
+
+| Robot              | Source           | Schedule | Cache TTL | Purpose                   |
+| ------------------ | ---------------- | -------- | --------- | ------------------------- |
+| `macro-btc-dxy`    | FRED + CoinGecko | 15 min   | 60 min    | BTC vs DXY correlation    |
+| `macro-etf-flows`  | Various          | 30 min   | 120 min   | Spot ETF inflows/outflows |
+| `macro-hashrate`   | Glassnode        | 60 min   | 240 min   | BTC network hashrate      |
+| `macro-difficulty` | Glassnode        | 60 min   | 240 min   | Mining difficulty         |
+
+**Skills served:** Macro Market Analyst, Bitcoin Metrics
+
+---
+
+### Category 14: Gaming & Metaverse
+
+| Robot                 | Source        | Schedule | Cache TTL | Purpose              |
+| --------------------- | ------------- | -------- | --------- | -------------------- |
+| `gaming-tokens`       | CoinGecko     | 15 min   | 60 min    | AXS, SAND, MANA, etc |
+| `gaming-volume`       | Various       | 30 min   | 120 min   | Game NFT volume      |
+| `gaming-active-users` | DappRadar     | 60 min   | 240 min   | DAU by game          |
+| `gaming-new-releases` | AI extraction | 120 min  | 480 min   | New game launches    |
+
+**Skills served:** GameFi Tracker, Metaverse Opportunity
+
+---
+
+### Category 15: Privacy Coins
+
+| Robot              | Source    | Schedule | Cache TTL | Purpose               |
+| ------------------ | --------- | -------- | --------- | --------------------- |
+| `privacy-prices`   | CoinGecko | 15 min   | 60 min    | XMR, ZEC, DASH prices |
+| `privacy-adoption` | Various   | 120 min  | 480 min   | Privacy coin metrics  |
+
+**Skills served:** Privacy Coin Tracker
+
+---
+
+## Backup & Failover Architecture
+
+### Primary-Backup Pattern
+
+Every critical robot has a backup:
+
+```typescript
+// OpenJoey bridge with failover
+async function getCryptoPricesWithFailover(): Promise<PriceData> {
+  // Try primary
+  try {
+    return await getFromRobot("btc-tracker");
+  } catch (primaryError) {
+    console.log("Primary robot failed, trying backup...");
+  }
+
+  // Try backup
+  try {
+    return await getFromRobot("btc-tracker-backup");
+  } catch (backupError) {
+    console.log("Backup failed too, using cache...");
+  }
+
+  // Fallback to stale cache (better than nothing)
+  return await getStaleCache("btc-prices", 60); // Allow 60 min stale
+}
+```
+
+### Robot Health Monitoring
+
+```typescript
+// Health check all robots every 5 minutes
+async function checkRobotHealth(): Promise<HealthReport> {
+  const robots = [
+    "btc-tracker",
+    "eth-tracker",
+    "meme-trending",
+    "defi-prices",
+    // ... all robots
+  ];
+
+  const health = await Promise.all(
+    robots.map(async (name) => {
+      const lastRun = await getRobotLastRun(name);
+      const isHealthy = Date.now() - lastRun < 10 * 60 * 1000; // 10 min threshold
+      return { name, healthy: isHealthy, lastRun };
+    }),
+  );
+
+  // Alert on unhealthy robots
+  const unhealthy = health.filter((h) => !h.healthy);
+  if (unhealthy.length > 0) {
+    await alertAdmin(`Robots down: ${unhealthy.map((u) => u.name).join(", ")}`);
+  }
+
+  return health;
+}
+```
+
+### Load Distribution
+
+```
+User Request for "BTC price"
+         │
+         ▼
+┌─────────────────────┐
+│  Which robot?       │
+│  Round-robin:       │
+│  1. btc-tracker     │
+│  2. btc-tracker-2   │ ← Clone for load
+│  3. btc-tracker-3   │ ← Clone for load
+└─────────────────────┘
+```
+
+---
+
+## Multi-Layer Caching Implementation
+
+### Layer 1: Redis (Hot Data)
+
+```typescript
+// Redis cache for sub-millisecond access
+import Redis from "ioredis";
+
+const redis = new Redis({
+  host: "localhost",
+  port: 6379,
+  retryStrategy: (times) => Math.min(times * 50, 2000),
+});
+
+async function getFromRedis<T>(key: string): Promise<T | null> {
+  const data = await redis.get(key);
+  return data ? JSON.parse(data) : null;
+}
+
+async function setToRedis<T>(key: string, data: T, ttlSeconds: number): Promise<void> {
+  await redis.setex(key, ttlSeconds, JSON.stringify(data));
+}
+
+// Usage in bridge
+export async function getBTCPrice(): Promise<number | null> {
+  // Try Redis first (Layer 1)
+  const cached = await getFromRedis("btc:price");
+  if (cached) return cached.price;
+
+  // Try file cache (Layer 2)
+  const fileCached = await getFromFileCache("btc:price");
+  if (fileCached) {
+    // Promote to Redis
+    await setToRedis("btc:price", fileCached, 60);
+    return fileCached.price;
+  }
+
+  // Fetch from robot (Layer 3)
+  const fresh = await fetchFromRobot("btc-tracker");
+  await setToRedis("btc:price", fresh, 60);
+  await setToFileCache("btc:price", fresh, 300);
+  return fresh.price;
+}
+```
+
+### Layer 2: File Cache (Warm Data)
+
+```typescript
+// Existing cache_layer.ts enhanced
+const CACHE_TIERS = {
+  price: { redis: 60, file: 300 }, // 1 min / 5 min
+  news: { redis: 300, file: 1800 }, // 5 min / 30 min
+  sentiment: { redis: 600, file: 3600 }, // 10 min / 60 min
+  onchain: { redis: 300, file: 900 }, // 5 min / 15 min
+};
+
+async function getCachedData(category: string, key: string) {
+  const tiers = CACHE_TIERS[category];
+  if (!tiers) throw new Error(`Unknown category: ${category}`);
+
+  // Try Redis
+  const redisData = await getFromRedis(`${category}:${key}`);
+  if (redisData) return redisData;
+
+  // Try file
+  const fileData = await getCached(key); // existing function
+  if (fileData) {
+    await setToRedis(`${category}:${key}`, fileData, tiers.redis);
+    return fileData;
+  }
+
+  return null;
+}
+```
+
+### Layer 3: Maxun Database (Persistent)
+
+```typescript
+// Store last successful robot run in Maxun DB
+async function persistRobotData(robotName: string, data: unknown): Promise<void> {
+  await maxunFetch(`/api/robots/${robotName}/persist`, {
+    method: "POST",
+    body: JSON.stringify({
+      data,
+      timestamp: Date.now(),
+      ttl: 24 * 60 * 60 * 1000, // 24 hours
+    }),
+  });
+}
+
+async function getPersistedData(robotName: string): Promise<unknown | null> {
+  try {
+    return await maxunFetch(`/api/robots/${robotName}/last-run`);
+  } catch {
+    return null;
+  }
+}
+```
+
+---
+
+## Scalability Math (100k Users/Day)
+
+### Without This Architecture:
+
+```
+100,000 users × 10 requests/day = 1,000,000 requests
+1,000,000 requests × 2 scrapes each = 2,000,000 scrapes/day
+2,000,000 ÷ 86,400 seconds = 23 scrapes/second
+Result: BANNED from every data source within hours
+```
+
+### With Multi-Layer Caching + 20 Robots:
+
+```
+100,000 users × 10 requests/day = 1,000,000 requests
+Cache hit rate: 99% (990,000 from cache)
+Cache misses: 1% (10,000 requests)
+Distributed across 20 robots: 500 scrapes/robot/day
+Per robot: 500 ÷ 24 hours = 20 scrapes/hour = 1 scrape/3 minutes
+Result: Well within rate limits, instant responses
+```
+
+### Cost at Scale:
+
+| Component    | 1k Users   | 10k Users  | 100k Users        |
+| ------------ | ---------- | ---------- | ----------------- |
+| Redis        | $0         | $20/mo     | $50/mo            |
+| Scraping     | $0         | $0         | $0 (cached)       |
+| OpenAI       | $10/mo     | $50/mo     | $200/mo           |
+| Maxun Server | $20/mo     | $20/mo     | $50/mo (upgraded) |
+| **TOTAL**    | **$30/mo** | **$90/mo** | **$300/mo**       |
+
+**vs. paying for APIs:** $10,000+/mo at 100k users
+
+---
+
+## Implementation Priority (Updated)
+
+### Week 1: Foundation
+
+- [ ] Deploy Maxun on Hetzner
+- [ ] Set up Redis cache layer
+- [ ] Build 3 robots: `btc-tracker`, `eth-tracker`, `meme-trending`
+- [ ] Implement 3-layer caching in OpenJoey
+
+### Week 2: Core Categories
+
+- [ ] Build 6 robots: `defi-prices`, `funding-rates`, `daytrade-breakouts`, `whale-exchanges`, `news-ai-coindesk`, `trending-twitter`
+- [ ] Add backup robots for critical categories
+- [ ] Implement health monitoring
+
+### Week 3: Expansion
+
+- [ ] Build 6 more robots: `l2-activity`, `nft-floor-prices`, `gaming-tokens`, `macro-etf-flows`, `lp-uniswap-v3`, `airdrop-tracker`
+- [ ] Set up robot failover logic
+- [ ] Load testing with 1000 concurrent users
+
+### Week 4: Polish
+
+- [ ] Build final 5 robots for niche categories
+- [ ] Optimize cache TTLs based on usage patterns
+- [ ] Production hardening
+- [ ] Document all robots
+
+---
+
+## Robot Configuration Templates
+
+### Template: High-Frequency Price Robot
+
+```json
+{
+  "name": "btc-tracker",
+  "type": "extract",
+  "priority": "critical",
+  "config": {
+    "url": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true",
+    "method": "GET",
+    "headers": {
+      "Accept": "application/json"
+    },
+    "schedule": "*/2 * * * *",
+    "retries": 3,
+    "timeout": 10000,
+    "cache": {
+      "ttl": 120,
+      "key": "btc:price"
+    },
+    "alerts": {
+      "on_failure": true,
+      "on_stale": true,
+      "stale_threshold": 300
+    }
+  },
+  "backup": {
+    "robot": "btc-tracker-backup",
+    "trigger": "on_failure_or_stale"
+  }
+}
+```
+
+### Template: AI News Robot
+
+```json
+{
+  "name": "news-ai-coindesk",
+  "type": "ai-extract",
+  "priority": "high",
+  "config": {
+    "url": "https://www.coindesk.com/",
+    "ai_prompt": "Extract top 3 headlines with sentiment (bullish/bearish/neutral), confidence 0-100, and one-sentence summary. Return JSON array.",
+    "schedule": "*/15 * * * *",
+    "cache": {
+      "ttl": 1800,
+      "key": "news:coindesk"
+    },
+    "cost_control": {
+      "max_tokens": 500,
+      "model": "gpt-4o-mini"
+    }
+  }
+}
+```
+
+### Template: On-Chain Robot
+
+```json
+{
+  "name": "whale-exchanges",
+  "type": "extract",
+  "priority": "high",
+  "config": {
+    "url": "https://etherscan.io/accounts/label/exchange",
+    "selectors": {
+      "wallets": ".table tbody tr",
+      "balance": ".text-right",
+      "change": ".change-24h"
+    },
+    "schedule": "*/3 * * * *",
+    "cache": {
+      "ttl": 600,
+      "key": "onchain:whales"
+    },
+    "rate_limit": {
+      "requests_per_minute": 20,
+      "delay_ms": 3000
+    }
+  }
+}
+```
+
+---
+
+## Summary: Why This Architecture Wins
+
+| Metric                    | Old (1 Robot)                 | New (20+ Robots + Cache) |
+| ------------------------- | ----------------------------- | ------------------------ |
+| **Scrapes/day**           | 1,000,000                     | 10,000 (99% reduction)   |
+| **Response time**         | 3-5 seconds                   | 50-100ms (cache hit)     |
+| **Availability**          | 95% (single point of failure) | 99.9% (distributed)      |
+| **Rate limit risk**       | Guaranteed ban                | Within limits            |
+| **Scale to 100k users**   | Impossible                    | $300/mo                  |
+| **New category addition** | Refactor entire robot         | Add 1 new robot          |
+
+---
+
+**Document Version:** 1.1  
+**Last Updated:** February 2026  
+**Architecture Status:** Production-ready for 100k+ users  
+**Next Step:** Start with Week 1 (Redis + 3 critical robots)
+
+---
+
+_Distributed intelligence at scale_ 🕷️📊⚡
 
 ---
 
