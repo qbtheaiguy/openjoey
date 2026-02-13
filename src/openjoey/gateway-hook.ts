@@ -12,6 +12,8 @@
  * The gateway calls these hooks at specific points in the message lifecycle.
  */
 
+import { buildWorkspaceSkillSnapshot, type SkillSnapshot } from "../agents/skills.js";
+import { resolveBundledSkillsDir } from "../agents/skills/bundled-dir.js";
 import {
   clearPending,
   getPendingAnnounce,
@@ -83,6 +85,8 @@ export interface HookResult {
   userContext?: string;
   /** When set, bot should run admin broadcast with this message (admin-only). */
   broadcast?: { text: string };
+  /** Skill snapshot containing loaded skills content for AI context injection. */
+  skillsSnapshot?: SkillSnapshot;
 }
 
 // ──────────────────────────────────────────────
@@ -851,6 +855,24 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
     userContext = USER_CODE_RESTRICTION_PROMPT;
   }
 
+  // 7. Load trading skills for AI context injection
+  // This makes the skills from /skills/ directory available to the AI agent
+  let skillsSnapshot: SkillSnapshot | undefined;
+  try {
+    const bundledSkillsDir = resolveBundledSkillsDir();
+    if (bundledSkillsDir) {
+      skillsSnapshot = buildWorkspaceSkillSnapshot(bundledSkillsDir, {
+        skillFilter: allowedSkills, // Only load allowed skills for this user
+      });
+      console.log(
+        `[gateway-hook] Loaded ${skillsSnapshot.skills.length} skills for user ${session.userId}: ${skillsSnapshot.skills.map((s) => s.name).join(", ")}`,
+      );
+    }
+  } catch (err) {
+    console.error("[gateway-hook] Failed to load skills:", err);
+    // Non-fatal: skills fail to load → AI works without them
+  }
+
   return {
     sessionKey,
     tier: session.tier,
@@ -861,6 +883,7 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
     shouldProcess: true,
     responseSuffix,
     userContext,
+    skillsSnapshot,
   };
 }
 
