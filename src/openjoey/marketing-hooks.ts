@@ -11,7 +11,7 @@
 const POST_CHART_FOMO = [
   "🔓 That was your free chart for today. Imagine what I can do with full access — unlimited scans, real-time alerts, whale tracking... Subscribe for $10/month → /subscribe",
   "🔓 Want me to watch this token 24/7 and alert you the moment it moves? Subscribe and I'll never let you miss a trade → /subscribe",
-  "🔓 3 days ago you had unlimited access. Ready to come back? $10/month unlocks everything → /subscribe",
+  "🔓 30 days ago you had unlimited access. Ready to come back? $10/month unlocks everything → /subscribe",
   "📊 Great analysis, right? Now imagine getting this on demand, plus real-time alerts and whale tracking. $10/month → /subscribe",
   "⚡ Free users found out about the last pump 6 hours late. Subscribers got alerted instantly. Just saying... → /subscribe",
 ];
@@ -123,7 +123,7 @@ export function getVolatilityTrigger(): string {
 export function getTrialExpiryWarning(hoursLeft: number): string {
   if (hoursLeft <= 2) {
     return (
-      `🚨 Your 3-day trial ends in ${hoursLeft} hours!\n\n` +
+      `🚨 Your 30-day trial ends in ${hoursLeft} hours!\n\n` +
       `To keep your alerts running and get unlimited access:\n` +
       `→ Subscribe for $10/month → /subscribe\n\n` +
       `After trial: 1 free chart/day, no alerts, no whale tracking.`
