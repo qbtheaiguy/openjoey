@@ -738,32 +738,35 @@ export async function onTelegramMessage(msg: IncomingTelegramMessage): Promise<H
   }
 
   // 4. Prepare response suffix (marketing hooks for free/trial users)
+  // Admins bypass all marketing hooks - no FOMO messages regardless of tier
   let responseSuffix: string | undefined;
 
-  if (session.tier === "free") {
-    responseSuffix = getPostChartFomo();
-    // Add referral upsell sometimes
-    if (Math.random() < 0.3) {
-      const db = getOpenJoeyDB();
-      const user = await db.getUser(msg.telegramId);
-      if (user?.referral_code) {
-        responseSuffix += getReferralUpsell(user.referral_code);
+  if (session.role !== "admin") {
+    if (session.tier === "free") {
+      responseSuffix = getPostChartFomo();
+      // Add referral upsell sometimes
+      if (Math.random() < 0.3) {
+        const db = getOpenJoeyDB();
+        const user = await db.getUser(msg.telegramId);
+        if (user?.referral_code) {
+          responseSuffix += getReferralUpsell(user.referral_code);
+        }
       }
     }
-  }
 
-  if (session.tier === "trial") {
-    const db = getOpenJoeyDB();
-    const user = await db.getUser(msg.telegramId);
-    if (user?.trial_ends_at) {
-      const hoursLeft = Math.max(
-        0,
-        Math.round((new Date(user.trial_ends_at).getTime() - Date.now()) / 3600000),
-      );
-      if (hoursLeft <= 24) {
-        const warning = getTrialExpiryWarning(hoursLeft);
-        if (warning) {
-          responseSuffix = `\n\n---\n${warning}`;
+    if (session.tier === "trial") {
+      const db = getOpenJoeyDB();
+      const user = await db.getUser(msg.telegramId);
+      if (user?.trial_ends_at) {
+        const hoursLeft = Math.max(
+          0,
+          Math.round((new Date(user.trial_ends_at).getTime() - Date.now()) / 3600000),
+        );
+        if (hoursLeft <= 24) {
+          const warning = getTrialExpiryWarning(hoursLeft);
+          if (warning) {
+            responseSuffix = `\n\n---\n${warning}`;
+          }
         }
       }
     }
