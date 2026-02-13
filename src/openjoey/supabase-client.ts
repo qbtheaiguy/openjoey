@@ -584,15 +584,17 @@ export class OpenJoeyDB {
     };
   }
 
-  /** For skill detail view: display name, description, category. */
+  /** For skill detail view: display name, description, full_description, category. */
   async getSkillForDetail(skillId: string): Promise<{
     display_name: string;
     description: string | null;
+    full_description: string | null;
     category: string | null;
   } | null> {
     const rows = await this.get<{
       display_name: string | null;
       description: string | null;
+      full_description: string | null;
       category: string | null;
     }>("skill_catalog", `id=eq.${encodeURIComponent(skillId)}&limit=1`);
     const row = rows[0];
@@ -602,6 +604,7 @@ export class OpenJoeyDB {
     return {
       display_name: row.display_name ?? skillId,
       description: row.description ?? null,
+      full_description: row.full_description ?? null,
       category: row.category ?? null,
     };
   }

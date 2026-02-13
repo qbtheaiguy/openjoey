@@ -1,12 +1,12 @@
 /**
- * OpenJoey Skill Browser
+ * OpenJoey Skill Browser - Redesigned for Better UX
  *
- * Builds category-based skill browsing for /skills command and
- * the s:cat: callback drill-down. Reads skill_catalog from Supabase
- * for categories and display names, falls back to SKILL_METADATA.
+ * Hierarchical skill browsing:
+ * 1. Main View: Category Groups (Crypto, Stocks, Options, etc.)
+ * 2. Category View: Skills in that category with descriptions
+ * 3. Skill Detail: Full description + Use/Fav buttons
  *
  * Scalable: adding a skill = add to skill_catalog + skills/ folder.
- * This module reads from the catalog automatically.
  */
 
 import type { KeyboardButton } from "./keyboard-builder.js";
@@ -21,23 +21,28 @@ export interface SkillEntry {
   id: string;
   displayName: string;
   category: string;
+  subCategory: string;
+  description: string;
+  fullDescription: string;
 }
 
 interface CatalogRow {
   id: string;
   display_name: string;
   description?: string | null;
+  full_description?: string | null;
   category: string | null;
+  sub_category?: string | null;
   is_active: boolean;
 }
 
 // Category display config — emoji + label per category key
-const CATEGORY_CONFIG: Record<string, { emoji: string; label: string }> = {
-  trading: { emoji: "\u{1F4CA}", label: "Trading" },
-  research: { emoji: "\u{1F50D}", label: "Research" },
-  alerts: { emoji: "\u{1F514}", label: "Alerts & Tracking" },
-  crypto: { emoji: "\u{1FA99}", label: "Crypto" },
-  options: { emoji: "\u{1F4C8}", label: "Options" },
+const CATEGORY_CONFIG: Record<string, { emoji: string; label: string; description: string }> = {
+  trading: { emoji: "📊", label: "Trading", description: "Technical analysis and signals" },
+  crypto: { emoji: "🪙", label: "Crypto", description: "Bitcoin, Ethereum, altcoins" },
+  research: { emoji: "🔬", label: "Research", description: "Deep dives and intelligence" },
+  alerts: { emoji: "🔔", label: "Alerts", description: "Notifications and tracking" },
+  options: { emoji: "📈", label: "Options", description: "Options chains and strategies" },
 };
 
 const DEFAULT_CATEGORY = { emoji: "\u{1F9E0}", label: "Other" };
@@ -59,13 +64,22 @@ async function loadSkills(): Promise<SkillEntry[]> {
       id: r.id,
       displayName: r.display_name,
       category: r.category ?? "other",
+      subCategory: r.sub_category ?? r.category ?? "other",
+      description: r.description?.trim() ?? "Trading analysis skill",
+      fullDescription:
+        r.full_description?.trim() ??
+        r.description?.trim() ??
+        "Use this skill for market analysis and trading signals.",
     }));
   } catch {
     // Fallback: derive from SKILL_METADATA
     return Object.entries(SKILL_METADATA).map(([id, meta]) => ({
       id,
       displayName: meta.displayName,
-      category: "trading", // no category in metadata; default
+      category: "trading",
+      subCategory: "trading",
+      description: "Trading analysis skill",
+      fullDescription: "Use this skill for market analysis and trading signals.",
     }));
   }
 }
@@ -80,12 +94,13 @@ export interface SkillBrowseResult {
 }
 
 /**
- * Build the /skills overview: grouped by category, each category
- * is a button that drills down (s:cat:<category>).
+ * Build the /skills overview: Shows categories with counts and descriptions
+ * Each category button drills down to see skills in that category.
  */
 export async function buildSkillsOverview(userFavorites: string[]): Promise<SkillBrowseResult> {
   const skills = await loadSkills();
   const favSet = new Set(userFavorites);
+  const favCount = userFavorites.filter((id) => skills.some((s) => s.id === id)).length;
 
   // Group by category
   const grouped = new Map<string, SkillEntry[]>();
@@ -97,18 +112,32 @@ export async function buildSkillsOverview(userFavorites: string[]): Promise<Skil
     grouped.get(cat)!.push(skill);
   }
 
-  let text = "\u{1F4DA} *All Skills*\nTap to use, \u2B50 to favorite.\n";
+  // Priority order for categories
+  const priority = ["crypto", "stocks", "trading", "options", "research", "alerts"];
+  const sortedCats = Array.from(grouped.keys()).sort((a, b) => {
+    const aIdx = priority.indexOf(a);
+    const bIdx = priority.indexOf(b);
+    if (aIdx === -1 && bIdx === -1) return a.localeCompare(b);
+    if (aIdx === -1) return 1;
+    if (bIdx === -1) return -1;
+    return aIdx - bIdx;
+  });
+
+  let text = "📚 *Trading Skills Library*\n\n";
+  text += "Choose a category to explore:\n\n";
 
   const keyboard: KeyboardButton[][] = [];
 
-  for (const [cat, entries] of grouped) {
+  for (const cat of sortedCats) {
+    const entries = grouped.get(cat)!;
     const config = CATEGORY_CONFIG[cat] ?? DEFAULT_CATEGORY;
-    const names = entries.map((e) => {
-      const star = favSet.has(e.id) ? " \u2B50" : "";
-      return `${e.displayName}${star}`;
-    });
-    text += `\n${config.emoji} *${config.label}* (${entries.length})\n`;
-    text += names.join(", ") + "\n";
+
+    // Count favorites in this category
+    const catFavs = entries.filter((e) => favSet.has(e.id)).length;
+    const favIndicator = catFavs > 0 ? ` ⭐${catFavs}` : "";
+
+    text += `${config.emoji} *${config.label}* — ${entries.length} skills${favIndicator}\n`;
+    text += `└ ${config.description}\n\n`;
 
     keyboard.push([
       {
@@ -118,19 +147,22 @@ export async function buildSkillsOverview(userFavorites: string[]): Promise<Skil
     ]);
   }
 
-  text += `\n\u2B50 = Your favorites | Tap skill \u2192 use | Tap \u2B50 \u2192 toggle`;
+  if (favCount > 0) {
+    text += `You have ${favCount} ⭐ favorite skill${favCount === 1 ? "" : "s"}\n`;
+  }
+  text += "\nTap a category to see skills 👆";
 
   keyboard.push([
-    { text: "\u2B50 My Favorites", callback_data: "s:favorites" },
-    { text: "\u{1F519} Back", callback_data: "m:main" },
+    { text: "⭐ My Favorites", callback_data: "s:favorites" },
+    { text: "🏠 Main Menu", callback_data: "m:main" },
   ]);
 
   return { text, keyboard };
 }
 
 /**
- * Build a category drill-down: list skills in one category with
- * [Use] and [Fav/Unfav] per skill.
+ * Build a category drill-down: Shows skills in the category with descriptions
+ * Each skill has: Name, Description, [Use] button, [Fav] button
  */
 export async function buildCategoryView(
   category: string,
@@ -144,39 +176,63 @@ export async function buildCategoryView(
   if (filtered.length === 0) {
     return {
       text: `${config.emoji} *${config.label}*\n\nNo skills in this category yet.`,
-      keyboard: [[{ text: "\u{1F519} Back to Skills", callback_data: "m:skills" }]],
+      keyboard: [[{ text: "🔙 Back to Skills", callback_data: "m:skills" }]],
     };
   }
 
-  let text = `${config.emoji} *${config.label}*\n\n`;
+  // Group by sub-category
+  const bySubCat = new Map<string, SkillEntry[]>();
+  for (const skill of filtered) {
+    const sub = skill.subCategory;
+    if (!bySubCat.has(sub)) {
+      bySubCat.set(sub, []);
+    }
+    bySubCat.get(sub)!.push(skill);
+  }
+
+  let text = `${config.emoji} *${config.label} Skills*\n\n`;
+  text += `${config.description}\n\n`;
+
   const keyboard: KeyboardButton[][] = [];
 
-  for (const skill of filtered) {
-    const isFav = favSet.has(skill.id);
-    const star = isFav ? " \u2B50" : "";
-    text += `\u2022 ${skill.displayName}${star}\n`;
+  // Sort sub-categories
+  const sortedSubCats = Array.from(bySubCat.keys()).sort();
 
-    keyboard.push([
-      { text: `\u{1F680} ${skill.displayName}`, callback_data: `s:use:${skill.id}` },
-      {
-        text: isFav ? "\u{1F5D1} Unfav" : "\u2B50 Fav",
-        callback_data: isFav ? `s:unfav:${skill.id}` : `s:fav:${skill.id}`,
-      },
-      { text: "\u2139\uFE0F Detail", callback_data: `s:detail:${skill.id}:${category}` },
-    ]);
+  for (const subCat of sortedSubCats) {
+    const subSkills = bySubCat.get(subCat)!;
+
+    for (const skill of subSkills) {
+      const isFav = favSet.has(skill.id);
+
+      // Add skill name and description to text
+      text += `*${skill.displayName}*${isFav ? " ⭐" : ""}\n`;
+      text += `${skill.description}\n\n`;
+
+      // Each skill gets its own row with action buttons
+      keyboard.push([
+        { text: `🚀 ${skill.displayName}`, callback_data: `s:use:${skill.id}` },
+        {
+          text: isFav ? "❌ Unfav" : "⭐ Fav",
+          callback_data: isFav
+            ? `s:unfav:${skill.id}:${category}`
+            : `s:fav:${skill.id}:${category}`,
+        },
+        { text: "ℹ️ Info", callback_data: `s:detail:${skill.id}:${category}` },
+      ]);
+    }
   }
 
   keyboard.push([
-    { text: "\u{1F519} All Skills", callback_data: "m:skills" },
-    { text: "\u{1F3E0} Main", callback_data: "m:main" },
+    { text: "🔙 All Categories", callback_data: "m:skills" },
+    { text: "🏠 Main", callback_data: "m:main" },
   ]);
 
   return { text, keyboard };
 }
 
 /**
- * Build individual skill detail view (§3.4): name, description, [Use] [Fav/Unfav] [Back].
- * categoryForBack is used for the Back button (s:cat:category).
+ * Build individual skill detail view: Shows full description with what the skill does
+ * [Use Skill] [Add to Favorites] [Back to Category]
  */
 export async function buildSkillDetailView(
   skillId: string,
@@ -184,33 +240,47 @@ export async function buildSkillDetailView(
   userFavorites: string[],
 ): Promise<SkillBrowseResult> {
   const db = getOpenJoeyDB();
-  const meta = await db.getSkillForDetail(skillId);
+  const skills = await loadSkills();
+  const skill = skills.find((s) => s.id === skillId);
   const config = CATEGORY_CONFIG[categoryForBack] ?? DEFAULT_CATEGORY;
   const isFav = userFavorites.includes(skillId);
 
-  const displayName = meta?.display_name ?? skillId;
-  const description = meta?.description?.trim() ?? "Use this skill for analysis and signals.";
+  // Try to get fresh data from DB (may fail gracefully)
+  let displayName = skill?.displayName ?? skillId;
+  let fullDesc = skill?.fullDescription ?? skill?.description ?? "Trading analysis skill";
 
-  let text = `\u{1F9E0} *${displayName}*\n\n`;
-  text += `${description}\n\n`;
+  try {
+    const meta = await db.getSkillForDetail(skillId);
+    if (meta) {
+      displayName = meta.display_name;
+      // Use full_description if available, fall back to description
+      fullDesc = meta.full_description ?? meta.description ?? fullDesc;
+    }
+  } catch {
+    // Use cached data from loadSkills
+  }
+
+  let text = `*${displayName}*\n`;
+  text += `━━━━━━━━━━━━━━━\n\n`;
+  text += `${fullDesc}\n\n`;
+
   if (isFav) {
-    text += "\u2B50 In favorites\n";
+    text += "⭐ This skill is in your favorites\n";
   }
 
   const keyboard: KeyboardButton[][] = [
+    [{ text: "🚀 USE THIS SKILL", callback_data: `s:use:${skillId}` }],
     [
-      { text: "\u{1F680} Use", callback_data: `s:use:${skillId}` },
       {
-        text: isFav ? "\u{1F5D1} Unfavorite" : "\u2B50 Favorite",
+        text: isFav ? "❌ Remove from Favorites" : "⭐ Add to Favorites",
         callback_data: isFav
           ? `s:unfav:${skillId}:detail:${categoryForBack}`
           : `s:fav:${skillId}:detail:${categoryForBack}`,
       },
     ],
-    [{ text: "\u2699\uFE0F Settings", callback_data: `s:settings:${skillId}` }],
     [
-      { text: `\u{1F519} Back to ${config.label}`, callback_data: `s:cat:${categoryForBack}` },
-      { text: "\u{1F3E0} Main", callback_data: "m:main" },
+      { text: `🔙 Back to ${config.label}`, callback_data: `s:cat:${categoryForBack}` },
+      { text: "🏠 Main Menu", callback_data: "m:main" },
     ],
   ];
 
