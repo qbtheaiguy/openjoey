@@ -108,6 +108,10 @@ const SLASH_COMMANDS = new Set([
   "/broadcast",
   "/announce",
   "/stop",
+  "/price",
+  "/trending",
+  "/portfolio",
+  "/whale",
 ]);
 
 function isSlashCommand(text: string): boolean {
@@ -436,6 +440,28 @@ async function handleSlashCommand(msg: IncomingTelegramMessage): Promise<string 
         msg.telegramChatId,
       );
       return getHelpMessage(session.tier, session.role);
+    }
+
+    case "/price": {
+      // Extract symbol from command (e.g., /price ETH)
+      const symbol = parts.slice(1).join(" ").trim().toUpperCase();
+      if (!symbol) {
+        return `💰 *PRICE CHECKER*\n\nI can get you instant prices for ANY token, stock, or forex pair!\n\n✨ *How to use:*\n• /price ETH — Get Ethereum price\n• /price BTC — Get Bitcoin price\n• /price SOL — Get Solana price\n• Or just ask: "What's the price of ETH?"\n\nI pull real-time data from Binance & DexScreener with risk analysis! 🤖💙`;
+      }
+      // Route to conversation service for actual price lookup
+      return null; // Let agent handle it
+    }
+
+    case "/trending": {
+      return `🔥 *TRENDING NOW*\n\nI scan the market 24/7 to find what's heating up before everyone else!\n\n✨ *What I show you:*\n• Top movers across all chains\n• Volume anomalies that signal opportunities\n• Whale activity hotspots\n• Early trend detection (before they blow up!)\n\nWant specific trending tokens? Just ask: "What's trending on Solana?"\n\nLet me check what's hot right now... 🤖💙`;
+    }
+
+    case "/portfolio": {
+      return `📊 *YOUR PORTFOLIO*\n\nI analyze ALL your holdings across chains and give you actionable insights!\n\n✨ *What you'll see:*\n• Total portfolio value\n• Risk-adjusted analysis (not just dollar values!)\n• Diversification health\n• Position sizing recommendations\n• Risk warnings when things look shaky\n\n*Connect your wallet to get started!*\n\nOr just tell me: "Show me my portfolio" 🤖💙`;
+    }
+
+    case "/whale": {
+      return `🐋 *WHALE INTELLIGENCE*\n\nTrack what the smart money is doing BEFORE it hits the news!\n\n✨ *What I monitor:*\n• Large wallet movements\n• Institutional buying/selling patterns\n• Unusual transaction volume\n• Smart money accumulation zones\n• Early signals of major moves\n\n*Try these:*\n• "Track whale activity for ETH"\n• "Show me big SOL moves"\n• "Any whale alerts today?"\n\nI'll watch the whales so you don't have to! 🤖💙`;
     }
 
     case "/alerts": {

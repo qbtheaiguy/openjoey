@@ -10,12 +10,12 @@ export function FilterSelect({
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: Array<{ value: string; label: string }>;
   paramName?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const name = paramName || label.toLowerCase();
+  const name = paramName || label?.toLowerCase() || "";
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -24,7 +24,7 @@ export function FilterSelect({
     } else {
       params.set(name, e.target.value);
     }
-    router.push(`/monitoring?${params.toString()}`);
+    router.push(`?${params.toString()}`);
   };
 
   return (
@@ -43,10 +43,8 @@ export function FilterSelect({
         }}
       >
         {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt === "all"
-              ? `All ${label}s`
-              : opt.replace("_", " ").replace(/^\w/, (c) => c.toUpperCase())}
+          <option key={opt.value} value={opt.value}>
+            {opt.value === "all" ? opt.label : opt.label}
           </option>
         ))}
       </select>

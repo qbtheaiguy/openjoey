@@ -122,6 +122,24 @@ export type { AgentId, AgentContext, AgentHandler, AgentHandleResult } from "./a
 
 export { logTradeDecision, logAIReasoning, logTokenSafety, getOpenJoeyLogger } from "./logging.js";
 
+// CCXT Tools - Exchange data access
+export {
+  fetchTicker,
+  fetchOHLCV,
+  comparePrices,
+  fetchOrderBook,
+  getSupportedExchanges,
+  isPairSupported,
+  ccxtTools,
+} from "./tools/ccxt/index.js";
+export type {
+  TickerData,
+  OHLCVData,
+  PriceComparison,
+  OrderBookData,
+  OrderBookEntry,
+} from "./tools/ccxt/index.js";
+
 // System Integration - wires all components together
 export {
   submitJob,

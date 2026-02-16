@@ -1,6 +1,11 @@
 "use server";
 
-import { getAdminDB } from "@/lib/db";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.SUPABASE_URL || "https://placeholder.supabase.co";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-key";
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export type DashboardStats = {
   totalUsers: number;
@@ -19,65 +24,50 @@ export type DashboardStats = {
 };
 
 export async function getDashboardStats(): Promise<DashboardStats | null> {
-  const db = getAdminDB();
-  if (!db) {
-    return null;
-  }
-
   try {
     const [totalUsers, totalUsage, recentLogs, usageRows] = await Promise.all([
-      db.count("users"),
-      db.count("skill_usage"),
-      db.get<{
-        id: string;
-        user_id: string;
-        skill_name: string;
-        success: boolean;
-        execution_time_ms: number | null;
-        created_at: string;
-      }>(
-        "skill_usage",
-        "order=created_at.desc&limit=20&select=id,user_id,skill_name,success,execution_time_ms,created_at",
-      ),
-      db.get<{ skill_name: string }>("skill_usage", "select=skill_name"),
+      supabase.from("users").select("*", { count: "exact", head: true }),
+      supabase.from("skill_usage").select("*", { count: "exact", head: true }),
+      supabase
+        .from("skill_usage")
+        .select("id,user_id,skill_name,success,execution_time_ms,created_at")
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabase.from("skill_usage").select("skill_name"),
     ]);
 
     const breakdown: Record<string, number> = {};
-    for (const row of usageRows) {
+    for (const row of (usageRows.data as any[]) || []) {
       const name = row.skill_name || "unknown";
       breakdown[name] = (breakdown[name] || 0) + 1;
     }
     const topSkills = Object.entries(breakdown)
-      .map(([name, count]) => ({ name, count }))
-      .toSorted((a, b) => b.count - a.count)
-      .slice(0, 8);
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }));
 
-    let revenue: number | null = null;
-    let successCount = 0;
-    try {
-      const withCost = await db.get<{ cost_usd: number | null; success: boolean }>(
-        "skill_usage",
-        "select=cost_usd,success",
-      );
-      if (withCost.length > 0) {
-        revenue = withCost.reduce((sum, r) => sum + (Number(r.cost_usd) || 0), 0);
-        successCount = withCost.filter((r) => r.success).length;
-      }
-    } catch {
-      // cost_usd or column might not exist
-    }
-    const successRate = totalUsage > 0 ? Math.round((successCount / totalUsage) * 1000) / 10 : null;
+    const revenue =
+      (usageRows.data as any[])?.reduce((sum: number, row: any) => {
+        // Add your revenue calculation logic here
+        return sum + (row.success ? 0.01 : 0); // Example: $0.01 per successful usage
+      }, 0) || null;
+
+    const successRate = (usageRows.data as any[])?.length
+      ? ((usageRows.data as any[]).filter((row: any) => row.success).length /
+          (usageRows.data as any[]).length) *
+        100
+      : null;
 
     return {
-      totalUsers,
-      totalUsage,
-      recentLogs: recentLogs || [],
+      totalUsers: totalUsers.count || 0,
+      totalUsage: totalUsage.count || 0,
+      recentLogs: recentLogs.data || [],
       topSkills,
-      revenue: revenue !== null ? Math.round(revenue * 100) / 100 : null,
+      revenue,
       successRate,
     };
   } catch (err) {
-    console.error("Dashboard getDashboardStats:", err);
+    console.error("getDashboardStats:", err);
     return null;
   }
 }

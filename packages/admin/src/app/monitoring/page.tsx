@@ -174,17 +174,36 @@ export default async function MonitoringPage({
           <FilterSelect
             label="Level"
             value={level}
-            options={["all", "info", "warning", "error", "critical"]}
+            options={[
+              { value: "all", label: "All Levels" },
+              { value: "info", label: "Info" },
+              { value: "warning", label: "Warning" },
+              { value: "error", label: "Error" },
+              { value: "critical", label: "Critical" },
+            ]}
           />
           <FilterSelect
             label="Category"
             value={category}
-            options={["all", "api", "queue", "agent", "resource", "rate_limit", "system"]}
+            options={[
+              { value: "all", label: "All Categories" },
+              { value: "api", label: "API" },
+              { value: "queue", label: "Queue" },
+              { value: "agent", label: "Agent" },
+              { value: "resource", label: "Resource" },
+              { value: "rate_limit", label: "Rate Limit" },
+              { value: "system", label: "System" },
+            ]}
           />
           <FilterSelect
             label="Limit"
             value={limit.toString()}
-            options={["50", "100", "250", "500"]}
+            options={[
+              { value: "50", label: "50" },
+              { value: "100", label: "100" },
+              { value: "250", label: "250" },
+              { value: "500", label: "500" },
+            ]}
             paramName="limit"
           />
 

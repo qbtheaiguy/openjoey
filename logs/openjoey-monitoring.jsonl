@@ -1,0 +1,1 @@
+{"id":"1771140831692-z2eh9wx7n","timestamp":"2026-02-15T07:33:51.693Z","level":"warning","category":"resource","message":"Elevated memory usage: 606MB RSS","details":{"rssMB":606.09375,"heapMB":435.7545852661133,"threshold":512},"source":"devops_ai"}

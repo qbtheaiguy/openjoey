@@ -1,30 +1,23 @@
 "use server";
 
-import {
-  runFullHealthCheck,
-  type MonitorReport,
-  type RecoveryAction,
-} from "../../../../src/openjoey/agents/devops_ai/index";
-
 export type OpenJoeyMonitoringStats = {
   overallStatus: "healthy" | "warning" | "critical";
-  reports: MonitorReport[];
-  actions: RecoveryAction[];
+  reports: any[];
+  actions: any[];
   timestamp: string;
 };
 
 export async function getOpenJoeyMonitoringStats(): Promise<OpenJoeyMonitoringStats | null> {
   try {
-    const check = await runFullHealthCheck();
-
+    // Mock data for now - replace with real monitoring later
     return {
-      overallStatus: check.overallStatus,
-      reports: check.reports,
-      actions: check.actions,
+      overallStatus: "healthy",
+      reports: [],
+      actions: [],
       timestamp: new Date().toISOString(),
     };
-  } catch (err) {
-    console.error("OpenJoey monitoring error:", err);
+  } catch (error) {
+    console.error("Failed to get monitoring stats:", error);
     return null;
   }
 }

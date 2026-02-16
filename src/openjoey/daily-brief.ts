@@ -117,7 +117,10 @@ export async function buildMorningBrief(
     fetchMacroEvents(),
   ]);
 
-  const lines: string[] = [`${JOEY_SIGNATURE} Morning Brief for ${user.name ?? "Trader"}`, ""];
+  const lines: string[] = [
+    `${JOEY_SIGNATURE} Morning Brief for ${user.display_name ?? user.telegram_username ?? "Trader"}`,
+    "",
+  ];
 
   // Market Overview
   lines.push("📊 Market Overview");
@@ -158,7 +161,7 @@ export async function buildMorningBrief(
   if (alerts.length > 0) {
     lines.push("🔔 Your Alerts");
     for (const alert of alerts.slice(0, 3)) {
-      lines.push(`  ${alert.symbol}: ${alert.condition}`);
+      lines.push(`  ${alert.token_symbol}: ${alert.condition}`);
     }
     lines.push("");
   }

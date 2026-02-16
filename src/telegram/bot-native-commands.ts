@@ -60,14 +60,13 @@ const EMPTY_RESPONSE_FALLBACK = "No response generated. Please try again.";
 
 /** Short command list for setMyCommands when telegramCfg.simplifiedMenu is true (e.g. OpenJoey). */
 const SIMPLIFIED_MENU_COMMANDS: Array<{ command: string; description: string }> = [
-  { command: "start", description: "Start or open menu." },
-  { command: "help", description: "How to use OpenJoey." },
-  { command: "status", description: "Your account status." },
-  { command: "referral", description: "Refer friends, earn credit." },
-  { command: "alerts", description: "Your price alerts." },
-  { command: "subscribe", description: "Upgrade your plan." },
-  { command: "cancel", description: "Cancel subscription." },
-  { command: "stop", description: "Stop current reply." },
+  { command: "start", description: "👋 Welcome & what Joey can do for you" },
+  { command: "price", description: "💰 Check any token price instantly" },
+  { command: "trending", description: "🔥 See what's heating up right now" },
+  { command: "portfolio", description: "📊 Your holdings & risk analysis" },
+  { command: "alerts", description: "🔔 Set smart price alerts" },
+  { command: "whale", description: "🐋 Track big money moves" },
+  { command: "help", description: "💬 Learn all my tricks & natural commands" },
 ];
 
 type TelegramNativeCommandContext = Context & { match?: string };

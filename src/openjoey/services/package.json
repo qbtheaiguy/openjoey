@@ -1,0 +1,27 @@
+{
+  "name": "openjoey-v1-services",
+  "version": "1.0.0",
+  "description": "OpenJoey V1 Trading Services - Advanced AI Trading Assistant",
+  "keywords": [
+    "ai",
+    "alerts",
+    "crypto",
+    "openjoey",
+    "portfolio",
+    "telegram",
+    "trading"
+  ],
+  "license": "MIT",
+  "author": "OpenJoey Team",
+  "main": "conversation_engine/index.js",
+  "scripts": {
+    "dev": "node --watch conversation_engine/index.js",
+    "start": "node conversation_engine/index.js",
+    "status": "echo 'OpenJoey V1 Services Status:' && ps aux | grep -E '(conversation|portfolio|alert|whale|radar|sentiment|signal|indicator)' || echo 'No V1 services running'",
+    "test": "echo 'Testing V1 services...'"
+  },
+  "dependencies": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

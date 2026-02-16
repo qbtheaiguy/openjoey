@@ -22,10 +22,23 @@
 
 **OpenJoey** is a production-ready AI trading assistant that monitors markets, analyzes trends, and delivers personalized insights through Telegram. Built on a multi-agent architecture with **Kimi K2.5** and **DeepSeek** AI models.
 
-### 🎯 Positioning
+### �️ Architecture Overview
 
-> **Full Trading AI Product** — Not a framework. Not an engine. A complete, deployable trading assistant with:
->
+OpenJoey consists of two main components:
+
+| Component                | Brand Name   | Purpose                                                  |
+| ------------------------ | ------------ | -------------------------------------------------------- |
+| **AI Trading Assistant** | **OpenJoey** | The intelligent bot users interact with via Telegram     |
+| **Infrastructure Layer** | **OpenClaw** | The gateway system that powers and deploys AI assistants |
+
+> **Full Trading AI Product** — OpenJoey is the complete trading assistant, powered by OpenClaw infrastructure for reliable 24/7 operation.
+
+### 📖 **Branding & Architecture**
+
+For detailed understanding of the OpenClaw vs OpenJoey relationship, see the [Branding Guide](./docs/branding-guide.md).
+
+**Quick Summary:** OpenJoey is the AI assistant users interact with, OpenClaw is the infrastructure that powers it.
+
 > - 🤖 Multi-agent intelligence (Coordinator, News, Alerts, DevOps)
 > - 📊 Real-time market data (CoinGecko, on-chain)
 > - 🌅 Automated morning briefs

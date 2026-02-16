@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "crypto";
 import {
   recordQueueMetrics,
   recordAgentHeartbeat,
@@ -45,14 +46,25 @@ export async function submitJob(
   payload: Record<string, unknown>,
   priority: "high" | "normal" | "low" = "normal",
 ): Promise<string> {
-  const jobId = await enqueueJob(kind, payload, priority);
+  const jobId = crypto.randomUUID();
+  const job: BusJob = {
+    id: jobId,
+    kind,
+    payload,
+    createdAtMs: Date.now(),
+  };
+  enqueueJob(job);
 
   // Track queue size for monitoring
   const queueLength = await getQueueLength();
   recordQueueMetrics(queueLength, 0);
 
   // Publish event for other components
-  publish("job.enqueued", { jobId, kind, payload, priority });
+  publish({
+    topic: "job.enqueued",
+    payload: { jobId, kind, payload, priority },
+    timestampMs: Date.now(),
+  });
 
   return jobId;
 }
@@ -101,22 +113,30 @@ export async function processJob(job: BusJob): Promise<AgentHandleResult> {
 
     // Record success
     recordAgentHeartbeat(agentId);
-    publish("job.completed", {
-      jobId: job.id,
-      agentId,
-      durationMs: Date.now() - startTime,
-      status: result.status,
+    publish({
+      topic: "job.completed",
+      payload: {
+        jobId: job.id,
+        agentId,
+        durationMs: Date.now() - startTime,
+        status: result.status,
+      },
+      timestampMs: Date.now(),
     });
 
     return result;
   } catch (error) {
     // Record failure
     recordAgentFailure(agentId);
-    publish("job.failed", {
-      jobId: job.id,
-      agentId,
-      error: String(error),
-      durationMs: Date.now() - startTime,
+    publish({
+      topic: "job.failed",
+      payload: {
+        jobId: job.id,
+        agentId,
+        error: String(error),
+        durationMs: Date.now() - startTime,
+      },
+      timestampMs: Date.now(),
     });
 
     return {
@@ -340,6 +360,11 @@ export async function checkAndTriggerAlerts(): Promise<void> {
   // Fetch current prices for all alert tokens
   const uniqueSymbols = [...new Set(allAlerts.map((a) => a.token_symbol.toLowerCase()))];
   const prices = await fetchCoinGeckoPrices(uniqueSymbols.length);
+
+  if (!prices) {
+    console.error("[ALERTS] Failed to fetch prices for alert check");
+    return;
+  }
 
   const priceMap = new Map(prices.map((p) => [p.symbol.toLowerCase(), p.current_price]));
 

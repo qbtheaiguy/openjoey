@@ -441,3 +441,18 @@ export function extractTelegramLocation(msg: Message): NormalizedLocation | null
 
   return null;
 }
+
+/**
+ * Resolve Telegram group configuration
+ * Returns group and topic config for a given chat
+ */
+export function resolveTelegramGroupConfig(
+  chatId: number | string,
+  messageThreadId?: number,
+): {
+  groupConfig?: { enabled?: boolean; allowFrom?: string[]; groupPolicy?: string };
+  topicConfig?: { enabled?: boolean; allowFrom?: string[] };
+} {
+  // Default implementation - can be overridden by caller
+  return {};
+}

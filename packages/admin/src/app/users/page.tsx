@@ -41,23 +41,30 @@ import {
 } from "@/actions/users";
 
 // Status colors for ALL real status values from Supabase
-const STATUS_COLORS: Record<UserRow["status"], { bg: string; text: string; border: string }> = {
+const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   active: { bg: "#dcfce7", text: "#166534", border: "#bbf7d0" },
+  free: { bg: "#f3f4f6", text: "#4b5563", border: "#e5e7eb" },
+  trial: { bg: "#f0fdf4", text: "#15803d", border: "#86efac" },
+  premium: { bg: "#fef3c7", text: "#92400e", border: "#fde68a" },
+  trader: { bg: "#fed7aa", text: "#9a3412", border: "#fdba74" },
+  annual: { bg: "#c7d2fe", text: "#3730a3", border: "#a5b4fc" },
+  expired: { bg: "#fee2e2", text: "#991b1b", border: "#fecaca" },
+  cancelled: { bg: "#e5e7eb", text: "#374151", border: "#d1d5db" },
   suspended: { bg: "#fef3c7", text: "#92400e", border: "#fde68a" },
   banned: { bg: "#fee2e2", text: "#991b1b", border: "#fecaca" },
   pending: { bg: "#eff6ff", text: "#1e40af", border: "#dbeafe" },
-  trial: { bg: "#f0fdf4", text: "#15803d", border: "#86efac" },
 };
 
 // Tier colors for ALL real tier values from Supabase
-const TIER_COLORS: Record<UserRow["tier"], { bg: string; text: string }> = {
+const TIER_COLORS: Record<string, { bg: string; text: string }> = {
   free: { bg: "#f3f4f6", text: "#4b5563" },
-  basic: { bg: "#dbeafe", text: "#1e40af" },
-  pro: { bg: "#ddd6fe", text: "#5b21b6" },
-  enterprise: { bg: "#fce7f3", text: "#be185d" },
+  trial: { bg: "#f0fdf4", text: "#15803d" },
   trader: { bg: "#fed7aa", text: "#9a3412" },
   premium: { bg: "#fecaca", text: "#991b1b" },
   annual: { bg: "#c7d2fe", text: "#3730a3" },
+  basic: { bg: "#dbeafe", text: "#1e40af" },
+  pro: { bg: "#ddd6fe", text: "#5b21b6" },
+  enterprise: { bg: "#fce7f3", text: "#be185d" },
 };
 
 export default function UsersPage() {
@@ -67,13 +74,13 @@ export default function UsersPage() {
 
   // Parse URL params
   const filters: UserFilters = {
-    query: searchParams.get("query") || undefined,
-    status: (searchParams.get("status") as UserFilters["status"]) || "all",
-    tier: (searchParams.get("tier") as UserFilters["tier"]) || "all",
-    sortBy: (searchParams.get("sortBy") as UserFilters["sortBy"]) || "created_at",
-    sortOrder: (searchParams.get("sortOrder") as UserFilters["sortOrder"]) || "desc",
-    page: parseInt(searchParams.get("page") || "1", 10),
-    limit: parseInt(searchParams.get("limit") || "50", 10),
+    query: searchParams?.get("query") || undefined,
+    status: (searchParams?.get("status") as UserFilters["status"]) || "all",
+    tier: (searchParams?.get("tier") as UserFilters["tier"]) || "all",
+    sortBy: (searchParams?.get("sortBy") as UserFilters["sortBy"]) || "created_at",
+    sortOrder: (searchParams?.get("sortOrder") as UserFilters["sortOrder"]) || "desc",
+    page: parseInt(searchParams?.get("page") || "1", 10),
+    limit: parseInt(searchParams?.get("limit") || "50", 10),
   };
 
   const [data, setData] = useState<{
@@ -100,7 +107,7 @@ export default function UsersPage() {
 
   // Update URL with filters
   const updateFilter = (key: keyof UserFilters, value: string | number | undefined) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || "");
     if (value === undefined || value === "all" || value === "") {
       params.delete(key);
     } else {
@@ -552,15 +559,8 @@ export default function UsersPage() {
                       onSort={toggleSort}
                     />
                     <SortableHeader
-                      label="Created"
-                      sortKey="created_at"
-                      currentSort={filters.sortBy}
-                      currentOrder={filters.sortOrder}
-                      onSort={toggleSort}
-                    />
-                    <SortableHeader
-                      label="Last Active"
-                      sortKey="last_active_at"
+                      label="Tier"
+                      sortKey="tier"
                       currentSort={filters.sortBy}
                       currentOrder={filters.sortOrder}
                       onSort={toggleSort}
@@ -684,14 +684,7 @@ export default function UsersPage() {
                           {new Date(user.created_at).toLocaleDateString()}
                         </td>
                         <td style={{ fontSize: "13px", color: "var(--text-muted)" }}>
-                          {user.last_active_at ? (
-                            <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                              <Clock size={12} />
-                              {new Date(user.last_active_at).toLocaleDateString()}
-                            </span>
-                          ) : (
-                            "Never"
-                          )}
+                          {new Date(user.created_at).toLocaleDateString()}
                         </td>
                         <td>
                           <button

@@ -1,9 +1,13 @@
 "use server";
 
-import { getAdminDB } from "@/lib/db";
+import { createClient } from "@supabase/supabase-js";
 
-// COMPLETE UserRow type matching Supabase database.types.ts EXACTLY
-// All fields are real data from Supabase - NO MOCK DATA
+const supabaseUrl = process.env.SUPABASE_URL || "https://placeholder.supabase.co";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-key";
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// COMPLETE UserRow type matching actual Supabase database structure
 export type UserRow = {
   // Core identity
   id: string;
@@ -12,8 +16,8 @@ export type UserRow = {
   display_name: string | null;
 
   // Status & tier
-  status: "active" | "suspended" | "banned" | "pending" | "trial";
-  tier: "free" | "basic" | "pro" | "enterprise" | "trader" | "premium" | "annual";
+  status: "trial" | "free" | "active" | "premium" | "trader" | "annual" | "expired" | "cancelled";
+  tier: "trial" | "free" | "trader" | "premium" | "annual";
 
   // Timestamps
   created_at: string;
@@ -23,10 +27,10 @@ export type UserRow = {
   credit_balance: number;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
-  subscription_started_at: string | null;
-  subscription_ends_at: string | null;
   trial_started_at: string | null;
   trial_ends_at: string | null;
+  subscription_started_at: string | null;
+  subscription_ends_at: string | null;
 
   // Usage data
   charts_used_today: number;
@@ -36,40 +40,20 @@ export type UserRow = {
   referral_code: string | null;
   referred_by: string | null;
 
-  // Joined data from views (real computed data)
-  referral_stats?: {
-    total_referrals: number;
-    converted_referrals: number;
-    paid_referrals: number;
-    total_earned: number;
-    current_balance: number;
-  } | null;
-
-  // Session activity (real from sessions table)
-  last_active_at?: string | null;
-  session_count?: number;
-  total_messages?: number;
-
-  // Usage analytics (real from usage_events table)
-  total_usage_events?: number;
-  last_usage_at?: string | null;
+  // Additional fields
+  broadcast_opt_out: boolean;
+  daily_brief_opted_in: boolean;
+  daily_brief_paused_until: string | null;
 };
 
 export type UserFilters = {
   query?: string;
-  status?: UserRow["status"] | "all";
-  tier?: UserRow["tier"] | "all";
+  status?: string;
+  tier?: string;
   dateFrom?: string;
   dateTo?: string;
-  sortBy?:
-    | "created_at"
-    | "updated_at"
-    | "last_active_at"
-    | "usage_count"
-    | "display_name"
-    | "tier"
-    | "status";
-  sortOrder?: "asc" | "desc";
+  sortBy?: string;
+  sortOrder?: string;
   page?: number;
   limit?: number;
 };
@@ -78,20 +62,18 @@ export type UserStats = {
   total: number;
   active: number;
   suspended: number;
+  banned: number;
+  pending: number;
+  trial: number;
   byTier: Partial<Record<UserRow["tier"], number>>;
   newToday: number;
   newThisWeek: number;
-  activeToday: number;
+  activeToday: number; // Set to 0 since last_active_at doesn't exist
 };
 
 export async function getUsers(
   filters: UserFilters = {},
 ): Promise<{ users: UserRow[]; total: number; page: number; totalPages: number } | null> {
-  const db = getAdminDB();
-  if (!db) {
-    return null;
-  }
-
   const {
     query,
     status = "all",
@@ -105,55 +87,93 @@ export async function getUsers(
   } = filters;
 
   const offset = (page - 1) * limit;
-  let filter = `order=${sortBy}.${sortOrder}&limit=${limit}&offset=${offset}`;
-  let countFilter = "";
-
-  // Build filters
-  const conditions: string[] = [];
-
-  if (query) {
-    if (!isNaN(Number(query))) {
-      conditions.push(`telegram_id=eq.${query}`);
-    } else {
-      conditions.push(`or=(telegram_username.ilike.*${query}*,display_name.ilike.*${query}*)`);
-    }
-  }
-
-  if (status !== "all") {
-    conditions.push(`status=eq.${status}`);
-  }
-
-  if (tier !== "all") {
-    conditions.push(`tier=eq.${tier}`);
-  }
-
-  if (dateFrom) {
-    conditions.push(`created_at=gte.${dateFrom}`);
-  }
-
-  if (dateTo) {
-    conditions.push(`created_at=lte.${dateTo}`);
-  }
-
-  if (conditions.length > 0) {
-    filter += `&${conditions.join("&")}`;
-    countFilter = conditions.join("&");
-  }
-
-  filter +=
-    "&select=id,telegram_id,telegram_username,display_name,status,tier,created_at,updated_at,last_active_at";
 
   try {
-    const [users, total] = await Promise.all([
-      db.get<UserRow>("users", filter),
-      db.count("users", countFilter),
-    ]);
+    let supabaseQuery = supabase
+      .from("users")
+      .select(`
+        id, 
+        telegram_id, 
+        telegram_username, 
+        display_name, 
+        status, 
+        tier, 
+        created_at, 
+        updated_at
+      `)
+      .order(sortBy, { ascending: sortOrder === "asc" })
+      .range(offset, offset + limit - 1);
 
-    const totalPages = Math.ceil((total || 0) / limit);
+    // Apply filters
+    if (query) {
+      if (!isNaN(Number(query))) {
+        supabaseQuery = supabaseQuery.eq("telegram_id", Number(query));
+      } else {
+        supabaseQuery = supabaseQuery.or(
+          `telegram_username.ilike.%${query}%,display_name.ilike.%${query}%`,
+        );
+      }
+    }
+
+    if (status !== "all") {
+      supabaseQuery = supabaseQuery.eq("status", status);
+    }
+
+    if (tier !== "all") {
+      supabaseQuery = supabaseQuery.eq("tier", tier);
+    }
+
+    if (dateFrom) {
+      supabaseQuery = supabaseQuery.gte("created_at", dateFrom);
+    }
+
+    if (dateTo) {
+      supabaseQuery = supabaseQuery.lte("created_at", dateTo);
+    }
+
+    const { data: users, error } = await supabaseQuery;
+
+    if (error) {
+      console.error("getUsers:", error);
+      return null;
+    }
+
+    // Get total count
+    let countQuery = supabase.from("profiles").select("*", { count: "exact", head: true });
+
+    if (query) {
+      if (!isNaN(Number(query))) {
+        countQuery = countQuery.eq("telegram_id", Number(query));
+      } else {
+        countQuery = countQuery.or(
+          `telegram_username.ilike.%${query}%,display_name.ilike.%${query}%`,
+        );
+      }
+    }
+
+    if (status !== "all") {
+      countQuery = countQuery.eq("status", status);
+    }
+
+    if (tier !== "all") {
+      countQuery = countQuery.eq("tier", tier);
+    }
+
+    if (dateFrom) {
+      countQuery = countQuery.gte("created_at", dateFrom);
+    }
+
+    if (dateTo) {
+      countQuery = countQuery.lte("created_at", dateTo);
+    }
+
+    const { count } = await countQuery;
+    const total = count || 0;
+    const totalPages = Math.ceil(total / limit);
 
     return {
-      users: users || [],
-      total: total || 0,
+      users: (users || []) as UserRow[],
+      total,
       page,
       totalPages,
     };
@@ -164,53 +184,37 @@ export async function getUsers(
 }
 
 export async function getUserStats(): Promise<UserStats | null> {
-  const db = getAdminDB();
-  if (!db) {
-    return null;
-  }
-
   try {
-    const today = new Date().toISOString().split("T")[0];
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const { data: users } = await supabase.from("users").select("status, tier, created_at");
 
-    const [
-      total,
-      active,
-      suspended,
-      freeTier,
-      basicTier,
-      proTier,
-      enterpriseTier,
-      newToday,
-      newThisWeek,
-      activeToday,
-    ] = await Promise.all([
-      db.count("users", ""),
-      db.count("users", "status=eq.active"),
-      db.count("users", "status=eq.suspended"),
-      db.count("users", "tier=eq.free"),
-      db.count("users", "tier=eq.basic"),
-      db.count("users", "tier=eq.pro"),
-      db.count("users", "tier=eq.enterprise"),
-      db.count("users", `created_at=gte.${today}`),
-      db.count("users", `created_at=gte.${weekAgo}`),
-      db.count("users", `last_active_at=gte.${today}`),
-    ]);
+    if (!users) {
+      return null;
+    }
 
-    return {
-      total: total || 0,
-      active: active || 0,
-      suspended: suspended || 0,
-      byTier: {
-        free: freeTier || 0,
-        basic: basicTier || 0,
-        pro: proTier || 0,
-        enterprise: enterpriseTier || 0,
-      },
-      newToday: newToday || 0,
-      newThisWeek: newThisWeek || 0,
-      activeToday: activeToday || 0,
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const stats: UserStats = {
+      total: users.length,
+      active: users.filter((u) => u.status === "active").length,
+      suspended: users.filter((u) => u.status === "suspended").length,
+      banned: users.filter((u) => u.status === "banned").length,
+      pending: users.filter((u) => u.status === "pending").length,
+      trial: users.filter((u) => u.status === "trial").length,
+      byTier: {},
+      newToday: users.filter((u) => u.created_at.startsWith(today)).length,
+      newThisWeek: users.filter((u) => new Date(u.created_at) > weekAgo).length,
+      activeToday: 0, // Can't calculate without last_active_at
     };
+
+    // Count by tier
+    users.forEach((user) => {
+      const tier = user.tier as keyof typeof stats.byTier;
+      stats.byTier[tier] = (stats.byTier[tier] || 0) + 1;
+    });
+
+    return stats;
   } catch (err) {
     console.error("getUserStats:", err);
     return null;
@@ -220,57 +224,63 @@ export async function getUserStats(): Promise<UserStats | null> {
 export async function updateUserStatus(
   userId: string,
   status: UserRow["status"],
-): Promise<{ success: boolean; error?: string }> {
-  const db = getAdminDB();
-  if (!db) {
-    return { success: false, error: "Database not available" };
-  }
-
+): Promise<{ success: boolean; message: string }> {
   try {
-    await db.patch("users", { status, updated_at: new Date().toISOString() }, `id=eq.${userId}`);
-    return { success: true };
+    const { error } = await supabase
+      .from("profiles")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", userId);
+
+    if (error) {
+      return { success: false, message: `Failed to update status: ${error.message}` };
+    }
+
+    return { success: true, message: `User status updated to ${status}` };
   } catch (err) {
-    console.error("updateUserStatus:", err);
-    return { success: false, error: "Failed to update user status" };
+    return { success: false, message: `Error updating status: ${err}` };
   }
 }
 
 export async function updateUserTier(
   userId: string,
   tier: UserRow["tier"],
-): Promise<{ success: boolean; error?: string }> {
-  const db = getAdminDB();
-  if (!db) {
-    return { success: false, error: "Database not available" };
-  }
-
+): Promise<{ success: boolean; message: string }> {
   try {
-    await db.patch("users", { tier, updated_at: new Date().toISOString() }, `id=eq.${userId}`);
-    return { success: true };
+    const { error } = await supabase
+      .from("profiles")
+      .update({ tier, updated_at: new Date().toISOString() })
+      .eq("id", userId);
+
+    if (error) {
+      return { success: false, message: `Failed to update tier: ${error.message}` };
+    }
+
+    return { success: true, message: `User tier updated to ${tier}` };
   } catch (err) {
-    console.error("updateUserTier:", err);
-    return { success: false, error: "Failed to update user tier" };
+    return { success: false, message: `Error updating tier: ${err}` };
   }
 }
 
 export async function bulkUpdateUserStatus(
   userIds: string[],
   status: UserRow["status"],
-): Promise<{ success: boolean; updated: number; error?: string }> {
-  const db = getAdminDB();
-  if (!db) {
-    return { success: false, updated: 0, error: "Database not available" };
-  }
-
+): Promise<{ success: boolean; message: string; updated: number }> {
   try {
-    // PostgREST doesn't support bulk updates well, so we do individual updates
-    const updates = userIds.map((id) =>
-      db.patch("users", { status, updated_at: new Date().toISOString() }, `id=eq.${id}`),
-    );
-    await Promise.all(updates);
-    return { success: true, updated: userIds.length };
+    const { error } = await supabase
+      .from("profiles")
+      .update({ status, updated_at: new Date().toISOString() })
+      .in("id", userIds);
+
+    if (error) {
+      return { success: false, message: `Failed to update status: ${error.message}`, updated: 0 };
+    }
+
+    return {
+      success: true,
+      message: `${userIds.length} users updated to ${status}`,
+      updated: userIds.length,
+    };
   } catch (err) {
-    console.error("bulkUpdateUserStatus:", err);
-    return { success: false, updated: 0, error: "Failed to update users" };
+    return { success: false, message: `Error updating status: ${err}`, updated: 0 };
   }
 }

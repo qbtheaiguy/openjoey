@@ -24,6 +24,31 @@
   --topbar-h: 64px;
 }
 
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 16px !important;
+    margin-left: 0 !important;
+  }
+
+  .layout-wrapper {
+    flex-direction: column !important;
+  }
+
+  /* Mobile-specific adjustments */
+  .card {
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-size: 24px !important;
+  }
+
+  h2 {
+    font-size: 20px !important;
+  }
+}
+
 *,
 *::before,
 *::after {

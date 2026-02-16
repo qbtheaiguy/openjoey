@@ -17,8 +17,8 @@ import { getOpenJoeyDB } from "./supabase-client.js";
 const TELEGRAM_BOT_USERNAME = "OpenJoeyBot";
 
 /**
- * Day-1 welcome message: short, clear, matches progressive disclosure.
- * No referral, no trial dates, no clutter. The inline keyboard handles CTAs.
+ * Day-1 welcome message: warm, compelling, benefit-focused.
+ * Introduces Joey's personality and core value proposition.
  */
 export function getWelcomeMessage(
   displayName: string,
@@ -26,16 +26,46 @@ export function getWelcomeMessage(
   _trialEndsAt: string,
 ): string {
   return (
-    `Hey ${displayName} — I'm Joey. 🦞\n\n` +
-    `I'm your AI trading assistant. I research markets 24/7 so you can focus on execution.\n\n` +
-    `Let's start with something simple:\n\n` +
-    `💡 Try: "What's happening with SOL?" or "Find new meme coins"`
+    `Hey there ${displayName}! I'm Joey �💙\n\n` +
+    `Your personal AI trading companion, here to make crypto simple, smart, and stress-free.\n\n` +
+    `✨ *WHAT I DO FOR YOU:*\n\n` +
+    `🔍 *Instant Market Intel*\n` +
+    `→ Check any token price in 3 seconds\n` +
+    `→ Spot trending opportunities before they blow up\n` +
+    `→ Get chain-specific risk analysis (not just raw numbers)\n\n` +
+    `🎯 *Smart Alerts*\n` +
+    `→ "Hey Joey, alert me when ETH hits \$2,500"\n` +
+    `→ I watch the markets 24/7 so you don't have to\n` +
+    `→ Never miss a move that matters to YOUR portfolio\n\n` +
+    `📊 *Your Portfolio, Understood*\n` +
+    `→ See your holdings across all chains\n` +
+    `→ Risk-adjusted insights, not just dollar values\n` +
+    `→ Know when to hold, when to watch, when to act\n\n` +
+    `🐋 *Whale Intelligence*\n` +
+    `→ Track big money moves before they hit the news\n` +
+    `→ Know when smart money is buying or selling\n` +
+    `→ Stay ahead of market sentiment shifts\n\n` +
+    `� *Just Talk to Me*\n` +
+    `No need to learn complex commands! Just ask naturally:\n` +
+    `• "Should I buy SOL right now?"\n` +
+    `• "What's hot in the market today?"\n` +
+    `• "Is my portfolio looking risky?"\n` +
+    `• "Alert me if BNB drops 5%"\n\n` +
+    `🛡️ *TRADE SMARTER, NOT HARDER*\n\n` +
+    `I combine real-time data from Binance & DexScreener with AI-powered analysis to give you:\n` +
+    `✓ Clear, actionable insights (no cryptic charts)\n` +
+    `✓ Risk warnings when things look shaky\n` +
+    `✓ Confidence scores so you know what's solid vs. speculative\n\n` +
+    `Ready to dive in? Try:\n` +
+    `• /price ETH — Check Ethereum now\n` +
+    `• /trending — See what's heating up\n` +
+    `• /help — Learn all my tricks\n\n` +
+    `Or just tell me what you're curious about! 💙`
   );
 }
 
 /**
- * Returning-user welcome: shown when existing user taps /start again.
- * Includes referral line + trial/subscription reminder since they're past day-1.
+ * Returning-user welcome: warm re-engagement with clear next steps.
  */
 export function getReturningWelcomeMessage(
   displayName: string,
@@ -47,8 +77,13 @@ export function getReturningWelcomeMessage(
     : "";
 
   let text =
-    `Welcome back, ${displayName}! 🦞\n\n` +
-    `Your AI trading assistant is ready. Ask anything or tap the buttons below.`;
+    `Welcome back, ${displayName}! 💙\n\n` +
+    `Joey's been watching the markets for you. Here's what's ready:\n\n` +
+    `• /price — Check any token instantly\n` +
+    `• /trending — See what's heating up\n` +
+    `• /portfolio — Your holdings & risk analysis\n` +
+    `• /alerts — Your price alerts\n\n` +
+    `Or just ask me anything! 💙`;
 
   if (tier === "trial") {
     text += `\n\n⏳ You're on a free trial. /subscribe to keep full access.`;
@@ -60,10 +95,6 @@ export function getReturningWelcomeMessage(
 
   return text;
 }
-
-// ──────────────────────────────────────────────
-// /start command handler
-// ──────────────────────────────────────────────
 
 export async function handleStart(
   telegramId: number,
@@ -248,33 +279,43 @@ export async function handleReferral(telegramId: number): Promise<string> {
 export function getHelpMessage(tier: string, role: OpenJoeyRole): string {
   const skills = getSubscriberAllowedSkills();
 
-  let msg = `🦞 *OpenJoey Help*\n\n`;
-  msg += `*Trading Commands:*\n`;
-  msg += `• Send any token symbol for analysis (e.g. "SOL", "BONK")\n`;
-  msg += `• "Analyze [token]" — Full signal fusion report\n`;
-  msg += `• "Deep dive [token]" — Trading god research\n`;
-  msg += `• "Alert me when [token] hits $X" — Set price alert\n`;
-  msg += `• /alerts — View your active alerts\n`;
-  msg += `• "Track wallet [address]" — Watch a whale wallet\n`;
-  msg += `• "Check whales" — See whale activity\n`;
+  let msg = `🤖💙 *Joey's Command Guide*\n\n`;
 
-  msg += `\n*Account Commands:*\n`;
-  msg += `/start — Create account / restart\n`;
-  msg += `/status — Your account status\n`;
-  msg += `/subscribe — Upgrade your plan\n`;
-  msg += `/referral — Your referral link & stats\n`;
-  msg += `/cancel — Cancel subscription\n`;
-  msg += `/help — This message\n`;
+  msg += `*🎯 CORE COMMANDS — Start Here:*\n\n`;
 
-  msg += `\n*Your tier:* ${tier}\n`;
-  msg += `*Available skills:* ${skills.join(", ")}\n`;
-  if (role === "admin") {
-    msg += `\n🔧 *You're logged in as Admin* — full skill access (including coding).\n`;
+  msg += `💰 */price* — Check any token instantly\n`;
+  msg += `   _Example: /price ETH or just "What's SOL doing?"_\n\n`;
+
+  msg += `🔥 */trending* — See what's heating up right now\n`;
+  msg += `   _Spot opportunities before they blow up_\n\n`;
+
+  msg += `📊 */portfolio* — Your complete holdings & risk analysis\n`;
+  msg += `   _Know when to hold, when to watch, when to act_\n\n`;
+
+  msg += `🔔 */alerts* — Set smart price alerts\n`;
+  msg += `   _Example: "Alert me when ETH hits $2,500"_\n\n`;
+
+  msg += `🐋 */whale* — Track big money moves\n`;
+  msg += `   _See what smart money is doing before the news_\n\n`;
+
+  msg += `*💬 JUST TALK TO ME:*\n`;
+  msg += `No need to memorize commands! Ask naturally:\n`;
+  msg += `• "Should I buy SOL right now?"\n`;
+  msg += `• "Is my portfolio looking risky?"\n`;
+  msg += `• "What's hot in the market today?"\n`;
+  msg += `• "Compare ETH vs BNB"\n\n`;
+
+  msg += `*⚙️ ACCOUNT:*\n`;
+  msg += `• /status — Your account & usage\n`;
+  msg += `• /subscribe — Upgrade your plan\n`;
+  msg += `• /referral — Share & earn rewards\n`;
+  msg += `• /start — Restart this welcome message\n\n`;
+
+  if (tier === "free" || tier === "trial") {
+    msg += `⏳ *You're on ${tier}.* Upgrade for unlimited access → /subscribe\n\n`;
   }
 
-  if (tier === "free") {
-    msg += `\n💡 Upgrade for higher limits and more → /subscribe`;
-  }
+  msg += `*Need more help?* Just ask me anything! 💙`;
 
   return msg;
 }
@@ -302,7 +343,7 @@ export async function handleCancel(telegramId: number): Promise<string> {
     `2. Your data is retained for 30 days\n` +
     `3. Credits remain for 30 days (reactivate to restore)\n\n` +
     `To proceed, visit your billing portal or contact support.\n` +
-    `We're sorry to see you go! 🦞`
+    `We're sorry to see you go! �💙`
   );
 }
 

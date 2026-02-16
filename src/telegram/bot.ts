@@ -33,7 +33,7 @@ import { extractTokenSymbol } from "../openjoey/token-extract.js";
 import { resolveAgentRoute } from "../routing/resolve-route.js";
 import { resolveTelegramAccount } from "./accounts.js";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
-import { registerTelegramHandlers } from "./bot-handlers.js";
+import { registerTelegramHandlers } from "./bot-handlers-refactored.js";
 import { createTelegramMessageProcessor } from "./bot-message.js";
 import { registerTelegramNativeCommands } from "./bot-native-commands.js";
 import {
@@ -635,9 +635,8 @@ export function createTelegramBot(opts: TelegramBotOptions) {
     runtime,
     mediaMaxBytes,
     telegramCfg,
-    groupAllowFrom,
+    groupAllowFrom: groupAllowFrom ?? [],
     resolveGroupPolicy,
-    resolveTelegramGroupConfig,
     shouldSkipUpdate,
     processMessage,
     logger,

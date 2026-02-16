@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
+import ResponsiveSidebar from "@/components/ResponsiveSidebar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -22,7 +22,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <div className="layout-wrapper" style={{ display: "flex", minHeight: "100vh" }}>
-          <Sidebar />
+          <ResponsiveSidebar />
           <main
             style={{
               flex: 1,
@@ -31,6 +31,7 @@ export default function RootLayout({
               margin: "0 auto",
               width: "100%",
             }}
+            className="main-content"
           >
             {children}
           </main>

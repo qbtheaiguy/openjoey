@@ -9,6 +9,11 @@ import {
   ShieldCheck,
   CreditCard,
   Activity,
+  Server,
+  FileText,
+  TrendingUp,
+  Database,
+  Terminal,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -16,6 +21,10 @@ import { usePathname } from "next/navigation";
 const MENU_ITEMS = [
   { name: "Dashboard", icon: LayoutDashboard, href: "/" },
   { name: "System Monitoring", icon: Activity, href: "/monitoring" },
+  { name: "V1 Services", icon: Server, href: "/v1-services" },
+  { name: "Gateway Logs", icon: FileText, href: "/gateway-logs" },
+  { name: "V1 Analytics", icon: TrendingUp, href: "/v1-analytics" },
+  { name: "Dev Tools", icon: Terminal, href: "/dev-tools" },
   { name: "Users", icon: Users, href: "/users" },
   { name: "Referrals", icon: BarChart3, href: "/referrals" },
   { name: "Skill Logs", icon: History, href: "/logs" },
